@@ -97,3 +97,30 @@ test("getBridgePaths uses Windows-friendly roots and wrappers on win32", () => {
   assert.match(paths.powershellWrapperPath ?? "", /codex-telegram-bridge\\bin\\ctb\.ps1$/u);
   assert.match((paths as any).perfLogsDir ?? "", /codex-telegram-bridge\\logs\\perf$/u);
 });
+
+test("getBridgePaths isolates named instance state and config while sharing the installation", () => {
+  const paths = getBridgePaths(
+    "file:///home/example/repo/dist/cli.js",
+    "/home/example",
+    "linux",
+    { CTB_INSTANCE: "session2" }
+  );
+
+  assert.equal(paths.installRoot, "/home/example/.local/share/codex-telegram-bridge");
+  assert.equal(paths.stateRoot, "/home/example/.local/state/codex-telegram-bridge-session2");
+  assert.equal(paths.configRoot, "/home/example/.config/codex-telegram-bridge-session2");
+  assert.equal(paths.dbPath, "/home/example/.local/state/codex-telegram-bridge-session2/bridge.db");
+  assert.equal(paths.offsetPath, "/home/example/.local/state/codex-telegram-bridge-session2/runtime/telegram-offset.json");
+});
+
+test("getBridgePaths rejects unsafe instance names", () => {
+  assert.throws(
+    () => getBridgePaths(
+      "file:///home/example/repo/dist/cli.js",
+      "/home/example",
+      "linux",
+      { CTB_INSTANCE: "../session2" }
+    ),
+    /CTB_INSTANCE must contain/u
+  );
+});

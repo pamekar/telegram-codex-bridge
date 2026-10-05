@@ -51,6 +51,19 @@ export function getDebugRuntimeDir(runtimeDir: string): string {
   return join(runtimeDir, "debug");
 }
 
+function getInstanceDirectoryName(env: NodeJS.ProcessEnv): string {
+  const instance = env.CTB_INSTANCE?.trim();
+  if (!instance) {
+    return "codex-telegram-bridge";
+  }
+
+  if (!/^[a-z0-9][a-z0-9_-]{0,31}$/u.test(instance)) {
+    throw new Error("CTB_INSTANCE must contain 1-32 lowercase letters, numbers, underscores, or hyphens");
+  }
+
+  return `codex-telegram-bridge-${instance}`;
+}
+
 export function getBridgePaths(
   importMetaUrl: string,
   homeDir = homedir(),
@@ -58,15 +71,16 @@ export function getBridgePaths(
   env: NodeJS.ProcessEnv = process.env
 ): BridgePaths {
   const hostPlatform = getHostPlatform(platform);
+  const instanceDirectoryName = getInstanceDirectoryName(env);
   const installRoot = hostPlatform === "win32"
     ? join(getWindowsLocalAppData(homeDir, env), "codex-telegram-bridge")
     : join(homeDir, ".local", "share", "codex-telegram-bridge");
   const stateRoot = hostPlatform === "win32"
-    ? installRoot
-    : join(homeDir, ".local", "state", "codex-telegram-bridge");
+    ? join(getWindowsLocalAppData(homeDir, env), instanceDirectoryName)
+    : join(homeDir, ".local", "state", instanceDirectoryName);
   const configRoot = hostPlatform === "win32"
-    ? join(getWindowsRoamingAppData(homeDir, env), "codex-telegram-bridge")
-    : join(homeDir, ".config", "codex-telegram-bridge");
+    ? join(getWindowsRoamingAppData(homeDir, env), instanceDirectoryName)
+    : join(homeDir, ".config", instanceDirectoryName);
   const logsDir = join(stateRoot, "logs");
   const perfLogsDir = join(logsDir, "perf");
   const telegramSessionFlowLogsDir = join(logsDir, "telegram-session-flow");
