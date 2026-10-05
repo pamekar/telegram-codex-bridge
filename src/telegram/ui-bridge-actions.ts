@@ -8,27 +8,27 @@ const BRIDGE_COMMAND_ACTION_LABELS: Record<
   Record<UiLanguage, string>
 > = {
   cancel: {
-    zh: "取消",
+    zh: "Cancel",
     en: "Cancel"
   },
   hub: {
-    zh: "运行卡",
+    zh: "Hub",
     en: "Hub"
   },
   status: {
-    zh: "状态",
+    zh: "Status",
     en: "Status"
   },
   inspect: {
-    zh: "详情",
+    zh: "Inspect",
     en: "Inspect"
   },
   interrupt: {
-    zh: "中断操作",
+    zh: "Stopoperation",
     en: "Interrupt"
   },
   commands: {
-    zh: "命令",
+    zh: "Command",
     en: "Commands"
   }
 };

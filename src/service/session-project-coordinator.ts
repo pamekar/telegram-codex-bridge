@@ -264,12 +264,12 @@ export class SessionProjectCoordinator {
         await this.consumeEphemeralMessage(
           chatId,
           pendingRename.sourceMessageId,
-          pendingRename.kind === "project" ? "已取消项目别名修改。" : "已取消会话重命名。"
+          pendingRename.kind === "project" ? "Cancelled project alias change." : "Cancelled session rename."
         );
       } else {
         await this.deps.safeSendMessage(
           chatId,
-          pendingRename?.kind === "project" ? "已取消项目别名修改。" : "已取消会话重命名。"
+          pendingRename?.kind === "project" ? "Cancelled project alias change." : "Cancelled session rename."
         );
       }
       return true;
@@ -319,13 +319,13 @@ export class SessionProjectCoordinator {
     }
 
     if (pickerState.resolved) {
-      await this.deps.safeSendMessage(chatId, "这个操作已处理。");
+      await this.deps.safeSendMessage(chatId, "This operation has already been processed.");
       return;
     }
 
     const candidate = pickerState.picker.projectMap.get(projectKey);
     if (!candidate) {
-      await this.deps.safeSendMessage(chatId, "这个按钮已过期，请重新操作。");
+      await this.deps.safeSendMessage(chatId, "This button has expired. Please try again.");
       return;
     }
 
@@ -368,7 +368,7 @@ export class SessionProjectCoordinator {
 
     const roots = pickerState.browseRoots;
     if (roots.length === 0) {
-      await this.deps.safeSendMessage(chatId, "当前没有可浏览的根目录。");
+      await this.deps.safeSendMessage(chatId, "No browsable root directories available.");
       return;
     }
 
@@ -401,13 +401,13 @@ export class SessionProjectCoordinator {
     }
 
     if (!pickerState.inBrowseRootPicker) {
-      await this.deps.safeSendMessage(chatId, "这个按钮已过期，请重新操作。");
+      await this.deps.safeSendMessage(chatId, "This button has expired. Please try again.");
       return;
     }
 
     const rootPath = pickerState.browseRoots[rootIndex];
     if (!rootPath) {
-      await this.deps.safeSendMessage(chatId, "这个按钮已过期，请重新操作。");
+      await this.deps.safeSendMessage(chatId, "This button has expired. Please try again.");
       return;
     }
 
@@ -453,7 +453,7 @@ export class SessionProjectCoordinator {
 
     const pickerState = this.pickerStates.get(chatId);
     if (!pickerState) {
-      await this.deps.safeSendMessage(chatId, "这个按钮已过期，请重新操作。");
+      await this.deps.safeSendMessage(chatId, "This button has expired. Please try again.");
       return;
     }
 
@@ -461,7 +461,7 @@ export class SessionProjectCoordinator {
     if (!candidate) {
       await this.deps.safeSendMessage(
         chatId,
-        "这个目录不可用，请重新发送目录路径。\n也可以发送 /cancel 返回项目列表。",
+        "This directory is not available. Please resend the directory path.\nOr send /cancel to go back to projects.",
         this.buildBridgeCommandActionsReplyMarkup([{ command: "cancel" }])
       );
       return;
@@ -488,13 +488,13 @@ export class SessionProjectCoordinator {
     }
 
     if (pickerState.resolved) {
-      await this.deps.safeSendMessage(chatId, "这个操作已处理。");
+      await this.deps.safeSendMessage(chatId, "This operation has already been processed.");
       return;
     }
 
     const candidate = pickerState.picker.projectMap.get(projectKey);
     if (!candidate) {
-      await this.deps.safeSendMessage(chatId, "这个按钮已过期，请重新操作。");
+      await this.deps.safeSendMessage(chatId, "This button has expired. Please try again.");
       return;
     }
 
@@ -521,7 +521,7 @@ export class SessionProjectCoordinator {
     const pickerState = messageId ? await this.requireActivePickerState(chatId, messageId) : this.pickerStates.get(chatId);
     if (!pickerState) {
       if (!messageId) {
-        await this.deps.safeSendMessage(chatId, "这个按钮已过期，请重新操作。");
+        await this.deps.safeSendMessage(chatId, "This button has expired. Please try again.");
       }
       return;
     }
@@ -556,7 +556,7 @@ export class SessionProjectCoordinator {
     const snapshot = store.getReadinessSnapshot() ?? this.deps.getSnapshot() ?? fallbackSnapshot;
     const activeSession = store.getActiveSession(chatId);
     if (!snapshot) {
-      await this.deps.safeSendMessage(chatId, "桥接状态未知，请在本机运行 ctb doctor。");
+      await this.deps.safeSendMessage(chatId, "Bridge status unknown. Run ctb doctor locally.");
       return;
     }
 
@@ -625,12 +625,12 @@ export class SessionProjectCoordinator {
     const parsedArgs = parseResumeArgs(args);
     const cwd = parsedArgs.includeAll ? undefined : activeSession?.projectPath;
     if (!cwd && !parsedArgs.includeAll) {
-      await this.deps.safeSendMessage(chatId, "请先用 /new 选择项目，或用 /resume all 查看全部 Codex 会话。");
+      await this.deps.safeSendMessage(chatId, "Please use /new to select a project first, or /resume all to view all Codex sessions.");
       return;
     }
 
     if (parsedArgs.kind === "invalid") {
-      await this.deps.safeSendMessage(chatId, "找不到这个 Codex 会话。");
+      await this.deps.safeSendMessage(chatId, "This Codex session was not found.");
       return;
     }
 
@@ -655,14 +655,14 @@ export class SessionProjectCoordinator {
     });
     const target = targetPage.threads[(parsedArgs.index - 1) % RESUME_THREAD_PAGE_SIZE];
     if (!target) {
-      await this.deps.safeSendMessage(chatId, "找不到这个 Codex 会话。");
+      await this.deps.safeSendMessage(chatId, "This Codex session was not found.");
       return;
     }
 
     const existingSession = store.getSessionByThreadId(target.id);
     if (existingSession) {
       if (existingSession.chatId !== chatId) {
-        await this.deps.safeSendMessage(chatId, "这个 Codex 会话已绑定到另一个聊天。");
+        await this.deps.safeSendMessage(chatId, "This Codex session is already bound to another chat.");
         return;
       }
       if (existingSession.archived) {
@@ -714,7 +714,7 @@ export class SessionProjectCoordinator {
     const activeSession = store.getActiveSession(chatId);
     const cwd = options.includeAll ? undefined : activeSession?.projectPath;
     if (!cwd && !options.includeAll) {
-      await this.deps.safeSendMessage(chatId, "请先用 /new 选择项目，或用 /resume all 查看全部 Codex 会话。");
+      await this.deps.safeSendMessage(chatId, "Please use /new to select a project first, or /resume all to view all Codex sessions.");
       return;
     }
 
@@ -747,14 +747,14 @@ export class SessionProjectCoordinator {
 
     const index = Number.parseInt(args.trim(), 10);
     if (!Number.isFinite(index) || index < 1) {
-      await this.deps.safeSendMessage(chatId, "找不到这个会话。");
+      await this.deps.safeSendMessage(chatId, "This session was not found.");
       return;
     }
 
     const sessions = store.listSessions(chatId);
     const target = sessions[index - 1];
     if (!target) {
-      await this.deps.safeSendMessage(chatId, "找不到这个会话。");
+      await this.deps.safeSendMessage(chatId, "This session was not found.");
       return;
     }
 
@@ -783,24 +783,24 @@ export class SessionProjectCoordinator {
       return;
     }
 
-    await this.deps.safeSendMessage(chatId, "只支持 /archive 或 /archive all。");
+    await this.deps.safeSendMessage(chatId, "Only /archive or /archive all is supported.");
   }
 
   private async handleArchiveActiveSession(chatId: string, store: BridgeStateStore): Promise<void> {
     const activeSession = store.getActiveSession(chatId);
     if (!activeSession) {
-      await this.deps.safeSendMessage(chatId, "当前没有活动会话。");
+      await this.deps.safeSendMessage(chatId, "CurrentNo active sessions。");
       return;
     }
 
     if (activeSession.status === "running") {
-      await this.deps.safeSendMessage(chatId, "当前项目仍在执行，请先等待完成或停止当前操作。");
+      await this.deps.safeSendMessage(chatId, "Current project is still running. Please wait for completion or stop the current operation.");
       return;
     }
 
     const result = await this.archiveSession(chatId, store, activeSession);
     if (!result.ok) {
-      await this.deps.safeSendMessage(chatId, "当前无法归档这个会话，请稍后重试。");
+      await this.deps.safeSendMessage(chatId, "Unable to archive this session temporarily. Please try again later.");
       return;
     }
 
@@ -828,7 +828,7 @@ export class SessionProjectCoordinator {
   private async handleArchiveAllSessions(chatId: string, store: BridgeStateStore): Promise<void> {
     const visibleSessions = store.listSessions(chatId, { archived: false, limit: 2_147_483_647 });
     if (visibleSessions.length === 0) {
-      await this.deps.safeSendMessage(chatId, "当前没有可归档会话。");
+      await this.deps.safeSendMessage(chatId, "No sessions available to archive.");
       return;
     }
 
@@ -967,14 +967,14 @@ export class SessionProjectCoordinator {
 
     const index = Number.parseInt(args.trim(), 10);
     if (!Number.isFinite(index) || index < 1) {
-      await this.deps.safeSendMessage(chatId, "找不到这个会话。");
+      await this.deps.safeSendMessage(chatId, "This session was not found.");
       return;
     }
 
     const archivedSessions = store.listSessions(chatId, { archived: true, limit: 10 });
     const target = archivedSessions[index - 1];
     if (!target) {
-      await this.deps.safeSendMessage(chatId, "找不到这个会话。");
+      await this.deps.safeSendMessage(chatId, "This session was not found.");
       return;
     }
 
@@ -1028,7 +1028,7 @@ export class SessionProjectCoordinator {
         }
       }
 
-      await this.deps.safeSendMessage(chatId, "当前无法恢复这个会话，请稍后重试。");
+      await this.deps.safeSendMessage(chatId, "Unable to resume this session temporarily. Please try again later.");
     }
   }
 
@@ -1040,7 +1040,7 @@ export class SessionProjectCoordinator {
 
     const activeSession = store.getActiveSession(chatId);
     if (!activeSession) {
-      await this.deps.safeSendMessage(chatId, "当前没有活动会话。");
+      await this.deps.safeSendMessage(chatId, "CurrentNo active sessions。");
       return;
     }
 
@@ -1083,7 +1083,7 @@ export class SessionProjectCoordinator {
 
     const activeSession = store.getActiveSession(chatId);
     if (!activeSession || activeSession.sessionId !== sessionId || this.renameSurfaceMessageIds.get(chatId) !== messageId) {
-      await this.deps.safeSendMessage(chatId, "这个按钮已过期，请重新操作。");
+      await this.deps.safeSendMessage(chatId, "This button has expired. Please try again.");
       return;
     }
 
@@ -1105,7 +1105,7 @@ export class SessionProjectCoordinator {
 
     const activeSession = store.getActiveSession(chatId);
     if (!activeSession || activeSession.sessionId !== sessionId || this.renameSurfaceMessageIds.get(chatId) !== messageId) {
-      await this.deps.safeSendMessage(chatId, "这个按钮已过期，请重新操作。");
+      await this.deps.safeSendMessage(chatId, "This button has expired. Please try again.");
       return;
     }
 
@@ -1127,12 +1127,12 @@ export class SessionProjectCoordinator {
 
     const activeSession = store.getActiveSession(chatId);
     if (!activeSession || activeSession.sessionId !== sessionId || this.renameSurfaceMessageIds.get(chatId) !== messageId) {
-      await this.deps.safeSendMessage(chatId, "这个按钮已过期，请重新操作。");
+      await this.deps.safeSendMessage(chatId, "This button has expired. Please try again.");
       return;
     }
 
     if (!activeSession.projectAlias?.trim()) {
-      await this.deps.safeSendMessage(chatId, "当前项目还没有设置别名。");
+      await this.deps.safeSendMessage(chatId, "Current projectNo alias set yet。");
       return;
     }
 
@@ -1175,7 +1175,7 @@ export class SessionProjectCoordinator {
     if (!session) {
       this.pendingRenameStates.delete(chatId);
       this.renameSurfaceMessageIds.delete(chatId);
-      await this.deps.safeSendMessage(chatId, "当前没有活动会话。");
+      await this.deps.safeSendMessage(chatId, "CurrentNo active sessions。");
       return;
     }
 
@@ -1226,12 +1226,12 @@ export class SessionProjectCoordinator {
 
     const activeSession = store.getActiveSession(chatId);
     if (!activeSession) {
-      await this.deps.safeSendMessage(chatId, "当前没有活动会话。");
+      await this.deps.safeSendMessage(chatId, "CurrentNo active sessions。");
       return;
     }
 
     if (store.isProjectPinned(activeSession.projectPath)) {
-      await this.deps.safeSendMessage(chatId, "这个项目已经收藏。");
+      await this.deps.safeSendMessage(chatId, "This project is already pinned.");
       return;
     }
 
@@ -1251,18 +1251,18 @@ export class SessionProjectCoordinator {
 
     const activeSession = store.getActiveSession(chatId);
     if (!activeSession) {
-      await this.deps.safeSendMessage(chatId, "当前没有活动会话。");
+      await this.deps.safeSendMessage(chatId, "CurrentNo active sessions。");
       return;
     }
 
     const nextPlanMode = !activeSession.planMode;
     store.setSessionPlanMode(activeSession.sessionId, nextPlanMode);
 
-    const verb = nextPlanMode ? "开启" : "关闭";
+    const verb = nextPlanMode ? "enabled" : "Close";
     const suffix = activeSession.status === "running"
-      ? "当前任务不受影响，下次任务开始时生效。"
-      : "下次任务开始时生效。";
-    await this.deps.safeSendMessage(chatId, `已为会话「${activeSession.displayName}」${verb} Plan mode。${suffix}`);
+      ? "Current task is not affected. Changes take effect on the next task."
+      : "Changes take effect on the next task.";
+    await this.deps.safeSendMessage(chatId, `For session "${activeSession.displayName}" ${verb} plan mode. ${suffix}`);
   }
 
   private resolveBrowseRoots(): string[] {
@@ -1292,7 +1292,7 @@ export class SessionProjectCoordinator {
   private async requireActivePickerState(chatId: string, messageId: number): Promise<PickerState | null> {
     const pickerState = this.pickerStates.get(chatId);
     if (!pickerState || pickerState.interactiveMessageId !== messageId) {
-      await this.deps.safeSendMessage(chatId, "这个按钮已过期，请重新操作。");
+      await this.deps.safeSendMessage(chatId, "This button has expired. Please try again.");
       return null;
     }
 
@@ -1332,7 +1332,7 @@ export class SessionProjectCoordinator {
   }
 
   private getRenamePromptText(kind: PendingRenameState["kind"]): string {
-    return kind === "project" ? "请输入新的项目别名。\n发送 /cancel 取消。" : "请输入新的会话名称。\n发送 /cancel 取消。";
+    return kind === "project" ? "Enter a new project alias.\nSend /cancel to cancel." : "Please enter a new session name.\nSend /cancel to cancel.";
   }
 
   private async editOrSendRenamePrompt(chatId: string, messageId: number, promptText: string): Promise<number> {

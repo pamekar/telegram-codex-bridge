@@ -53,22 +53,22 @@ export function formatGlobalRuntimeNotice(notification: GlobalRuntimeNotice): st
   switch (notification.kind) {
     case "config_warning":
       return notification.summary
-        ? `Codex 配置警告：${notification.summary}${notification.detail ? `\n${notification.detail}` : ""}`
+        ? `Codex Config warning：${notification.summary}${notification.detail ? `\n${notification.detail}` : ""}`
         : null;
     case "deprecation_notice":
       return notification.summary
-        ? `Codex 弃用提示：${notification.summary}${notification.detail ? `\n${notification.detail}` : ""}`
+        ? `Codex Deprecation notice：${notification.summary}${notification.detail ? `\n${notification.detail}` : ""}`
         : null;
     case "model_rerouted":
       if (!notification.fromModel || !notification.toModel) {
         return null;
       }
-      return `Codex 已调整模型：${notification.fromModel} -> ${notification.toModel}${notification.reason ? ` (${notification.reason})` : ""}`;
+      return `Codex rerouted model: ${notification.fromModel} -> ${notification.toModel}${notification.reason ? ` (${notification.reason})` : ""}`;
     case "skills_changed":
-      return "Codex 技能列表已刷新。";
+      return "Codex skills list refreshed.";
     case "thread_compacted":
     case "thread_compaction_completed":
-      return "Codex 线程上下文已压缩。";
+      return "Codex thread context compacted.";
     default:
       return null;
   }

@@ -8044,6 +8044,26 @@ test("model command keeps small model lists on one page and supports two-step mo
             description: "tiny",
             defaultReasoningEffort: "minimal",
             supportedReasoningEfforts: [{ reasoningEffort: "minimal", description: "minimal" }]
+          },
+          {
+            id: "gpt-5.6-sol",
+            model: "gpt-5.6-sol",
+            displayName: "GPT-5.6 Sol",
+            isDefault: false,
+            hidden: false,
+            description: "older",
+            defaultReasoningEffort: "medium",
+            supportedReasoningEfforts: [{ reasoningEffort: "medium", description: "medium" }]
+          },
+          {
+            id: "gpt-6.1-sol",
+            model: "gpt-6.1-sol",
+            displayName: "GPT-6.1 Sol",
+            isDefault: false,
+            hidden: false,
+            description: "current",
+            defaultReasoningEffort: "medium",
+            supportedReasoningEfforts: [{ reasoningEffort: "medium", description: "medium" }]
           }
         ],
         nextCursor: null
@@ -8060,13 +8080,32 @@ test("model command keeps small model lists on one page and supports two-step mo
     };
 
     await (service as any).routeCommand("1", "model", "");
-    assert.match(sent[0]?.text ?? "", /选择模型/u);
-    assert.match(sent[0]?.text ?? "", /当前配置：gpt-5 \+ 中/u);
-    assert.match(sent[0]?.text ?? "", /当前生效：gpt-5 \+ 中/u);
-    assert.match(sent[0]?.text ?? "", /第 1\/1 页/u);
-    assert.equal(sent[0]?.options?.replyMarkup?.inline_keyboard?.length, 8);
-    assert.equal(sent[0]?.options?.replyMarkup?.inline_keyboard?.[1]?.[0]?.text, "GPT-5 [已配置/生效]");
+    assert.match(sent[0]?.text ?? "", /Model Selector/u);
+    assert.match(sent[0]?.text ?? "", /Configured: gpt-5 \+ Medium/u);
+    assert.match(sent[0]?.text ?? "", /Effective: gpt-5 \+ Medium/u);
+    assert.match(sent[0]?.text ?? "", /Page 1\/1/u);
+    assert.equal(sent[0]?.options?.replyMarkup?.inline_keyboard?.length, 9);
+    assert.equal(sent[0]?.options?.replyMarkup?.inline_keyboard?.[1]?.[0]?.text, "GPT-5 [configured/effective]");
     assert.equal(sent[0]?.options?.replyMarkup?.inline_keyboard?.[6]?.[0]?.text, "GPT-4.1 nano");
+    assert.equal(sent[0]?.options?.replyMarkup?.inline_keyboard?.[7]?.[0]?.text, "GPT-6.1 Sol");
+    assert.doesNotMatch(JSON.stringify(sent[0]?.options?.replyMarkup), /gpt-5\.6/i);
+
+    await (service as any).handleCallback({
+      id: "cb-model-pick-gpt-6.1-sol",
+      from: { id: 1, is_bot: false, first_name: "Tester" },
+      message: {
+        message_id: 1201,
+        chat: { id: 1, type: "private" },
+        date: 0,
+        text: sent[0]?.text ?? ""
+      },
+      data: getCallbackData(sent[0], 7, 0)
+    });
+    assert.equal(store.getActiveSession("1")?.selectedModel, "gpt-6.1-sol");
+
+    await (service as any).routeCommand("1", "model", "gpt-5.6-sol");
+    assert.equal(store.getActiveSession("1")?.selectedModel, "gpt-6.1-sol");
+    assert.match(sent.at(-1)?.text ?? "", /Model not found/u);
 
     await (service as any).handleCallback({
       id: "cb-model-pick-o3",
@@ -8080,10 +8119,10 @@ test("model command keeps small model lists on one page and supports two-step mo
       data: getCallbackData(sent[0], 3, 0)
     });
     assert.equal(callbackAnswers.at(-1), "");
-    assert.match(edited.at(-1)?.text ?? "", /选择思考强度/u);
+    assert.match(edited.at(-1)?.text ?? "", /Select reasoning effort/u);
     assert.match(edited.at(-1)?.text ?? "", /o3/u);
-    assert.equal(edited.at(-1)?.options?.replyMarkup?.inline_keyboard?.[0]?.[0]?.text, "默认（高）");
-    assert.equal(edited.at(-1)?.options?.replyMarkup?.inline_keyboard?.[2]?.[1]?.text, "极高");
+    assert.equal(edited.at(-1)?.options?.replyMarkup?.inline_keyboard?.[0]?.[0]?.text, "Default（High）");
+    assert.equal(edited.at(-1)?.options?.replyMarkup?.inline_keyboard?.[2]?.[1]?.text, "Very high");
 
     await (service as any).handleCallback({
       id: "cb-effort-xhigh",
@@ -8098,7 +8137,7 @@ test("model command keeps small model lists on one page and supports two-step mo
     });
     assert.equal(store.getActiveSession("1")?.selectedModel, "o3");
     assert.equal(store.getActiveSession("1")?.selectedReasoningEffort, "xhigh");
-    assert.match(edited.at(-1)?.text ?? "", /已为会话「Project One」设置模型：o3 \+ 极高/u);
+    assert.match(edited.at(-1)?.text ?? "", /Model for session "Project One" set to: o3 \+ Very high/u);
 
     await (service as any).handleNormalText("1", "Use the selected model");
 

@@ -37,7 +37,7 @@ export function resolveCommandPanelEntries(commands: string[], language: UiLangu
 export function buildHelpReplyMarkup(language: UiLanguage): TelegramInlineKeyboardMarkup {
   return {
     inline_keyboard: [[{
-      text: language === "en" ? "Open Commands" : "打开命令面板",
+      text: language === "en" ? "Open Commands" : "Open Commands",
       callback_data: encodeCommandPanelOpenCallback()
     }]]
   };
@@ -57,28 +57,28 @@ export function buildCommandPanelMessage(options: {
 
   rows.push([
     {
-      text: options.language === "en" ? "Full Help" : "完整帮助",
+      text: options.language === "en" ? "Full Help" : "Full Help",
       callback_data: encodeCommandPanelEditHelpCallback()
     },
     {
-      text: options.language === "en" ? "Edit Commands" : "编辑快捷指令",
+      text: options.language === "en" ? "Edit Commands" : "Edit Quick Commands",
       callback_data: encodeCommandPanelEditOpenCallback()
     }
   ]);
 
   const lines = [
-    formatHtmlHeading(options.language === "en" ? "Command Panel" : "快捷指令"),
+    formatHtmlHeading(options.language === "en" ? "Command Panel" : "Quick Commands"),
     options.language === "en"
       ? "Tap a button to run a bridge command."
-      : "点击按钮即可执行桥接指令。",
+      : "Click a button to execute a bridge command.",
     formatHtmlField(
-      options.language === "en" ? "Selected:" : "当前快捷指令：",
+      options.language === "en" ? "Selected:" : "CurrentQuick Commands：",
       `${options.commands.length}/${COMMAND_PANEL_MAX_COMMANDS}`
     )
   ];
 
   if (options.commands.length === 0) {
-    lines.push(options.language === "en" ? "No quick commands configured yet." : "当前还没有已配置的快捷指令。");
+    lines.push(options.language === "en" ? "No quick commands configured yet." : "No quick commands configured yet.");
   } else {
     lines.push(...options.commands.map((entry, index) =>
       `${index + 1}. /${entry.command} ${entry.description}`
@@ -104,7 +104,7 @@ export function buildCommandPanelEditMessage(options: {
   const totalPages = Math.max(1, pages.length);
   const safePage = Math.min(Math.max(options.page, 0), totalPages - 1);
   const currentPage = pages[safePage] ?? {
-    groupLabel: options.language === "en" ? "Commands" : "快捷指令",
+    groupLabel: options.language === "en" ? "Commands" : "Quick Commands",
     groupPage: 0,
     groupPageCount: 1,
     entries: []
@@ -113,7 +113,7 @@ export function buildCommandPanelEditMessage(options: {
   const selectedEntries = resolveCommandPanelEntries(options.commands, options.language);
   const selectedSummary = selectedEntries.length > 0
     ? selectedEntries.map((entry, index) => `${index + 1}. /${entry.command} ${entry.description}`).join("\n")
-    : (options.language === "en" ? "No commands selected yet." : "当前还没有选中的快捷指令。");
+    : (options.language === "en" ? "No commands selected yet." : "No commands selected yet.");
 
   const rows: TelegramInlineKeyboardMarkup["inline_keyboard"] = currentPage.entries.map((entry) => [{
     text: `${selectedSet.has(entry.command) ? "✓" : "＋"} ${entry.shortLabel}`,
@@ -123,13 +123,13 @@ export function buildCommandPanelEditMessage(options: {
   const navigation: Array<{ text: string; callback_data: string }> = [];
   if (safePage > 0) {
     navigation.push({
-      text: options.language === "en" ? "Previous" : "上一页",
+      text: options.language === "en" ? "Previous" : "Previous",
       callback_data: encodeCommandPanelEditPageCallback(options.token, safePage - 1)
     });
   }
   if (safePage + 1 < totalPages) {
     navigation.push({
-      text: options.language === "en" ? "Next" : "下一页",
+      text: options.language === "en" ? "Next" : "Next",
       callback_data: encodeCommandPanelEditPageCallback(options.token, safePage + 1)
     });
   }
@@ -137,24 +137,24 @@ export function buildCommandPanelEditMessage(options: {
     rows.push(navigation);
   }
 
-  rows.push([{ text: options.language === "en" ? "Save" : "保存", callback_data: encodeCommandPanelEditSaveCallback(options.token) }]);
-  rows.push([{ text: options.language === "en" ? "Restore Default" : "恢复默认", callback_data: encodeCommandPanelEditResetCallback(options.token) }]);
-  rows.push([{ text: options.language === "en" ? "Close" : "关闭", callback_data: encodeCommandPanelEditCloseCallback(options.token) }]);
+  rows.push([{ text: options.language === "en" ? "Save" : "Save", callback_data: encodeCommandPanelEditSaveCallback(options.token) }]);
+  rows.push([{ text: options.language === "en" ? "Restore Default" : "ResumeDefault", callback_data: encodeCommandPanelEditResetCallback(options.token) }]);
+  rows.push([{ text: options.language === "en" ? "Close" : "Close", callback_data: encodeCommandPanelEditCloseCallback(options.token) }]);
 
   return {
     text: [
-      formatHtmlHeading(options.language === "en" ? "Edit Quick Commands" : "编辑快捷指令"),
+      formatHtmlHeading(options.language === "en" ? "Edit Quick Commands" : "Edit Quick Commands"),
       options.language === "en"
         ? "Tap to select or remove commands. Selection order is display order."
-        : "点击按钮进行选择或移除。选择顺序就是显示顺序。",
+        : "Click a button to select or remove. Selection order determines display order.",
       options.language === "en"
         ? "Selecting a new command appends it to the end."
-        : "新选中的指令会追加到末尾。",
-      formatHtmlField(options.language === "en" ? "Current group:" : "当前分组：", currentPage.groupLabel),
-      formatHtmlField(options.language === "en" ? "Selected:" : "已选指令：", `${options.commands.length}/${COMMAND_PANEL_MAX_COMMANDS}`),
+        : "Newly selected commands will be appended to the end.",
+      formatHtmlField(options.language === "en" ? "Current group:" : "Current group:", currentPage.groupLabel),
+      formatHtmlField(options.language === "en" ? "Selected:" : "Selected:", `${options.commands.length}/${COMMAND_PANEL_MAX_COMMANDS}`),
       selectedSummary,
-      formatHtmlField(options.language === "en" ? "Group page:" : "分组页码：", `${currentPage.groupPage + 1}/${currentPage.groupPageCount}`),
-      formatHtmlField(options.language === "en" ? "Total page:" : "总页码：", `${safePage + 1}/${totalPages}`)
+      formatHtmlField(options.language === "en" ? "Group page:" : "Group page:", `${currentPage.groupPage + 1}/${currentPage.groupPageCount}`),
+      formatHtmlField(options.language === "en" ? "Total page:" : "Total page:", `${safePage + 1}/${totalPages}`)
     ].join("\n"),
     replyMarkup: { inline_keyboard: rows }
   };

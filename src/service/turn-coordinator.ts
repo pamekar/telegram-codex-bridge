@@ -323,28 +323,28 @@ export class TurnCoordinator {
   async handleInterrupt(chatId: string): Promise<void> {
     const store = this.deps.getStore();
     if (!store) {
-      await this.deps.safeSendMessage(chatId, "当前没有正在执行的操作。");
+      await this.deps.safeSendMessage(chatId, "CurrentNo running operation.");
       return;
     }
 
     const activeSession = store.getActiveSession(chatId);
     if (!activeSession || activeSession.status !== "running") {
-      await this.deps.safeSendMessage(chatId, "当前没有正在执行的操作。");
+      await this.deps.safeSendMessage(chatId, "CurrentNo running operation.");
       return;
     }
 
     const activeTurn = this.getActiveTurnBySessionId(activeSession.sessionId);
     if (!activeTurn) {
-      await this.deps.safeSendMessage(chatId, "当前没有正在执行的操作。");
+      await this.deps.safeSendMessage(chatId, "CurrentNo running operation.");
       return;
     }
 
     try {
       await this.deps.ensureAppServerAvailable();
       await this.deps.getAppServer()?.interruptTurn(activeTurn.threadId, activeTurn.turnId);
-      await this.deps.safeSendMessage(chatId, "已请求停止当前操作。");
+      await this.deps.safeSendMessage(chatId, "Interrupt requested for the current operation.");
     } catch {
-      await this.deps.safeSendMessage(chatId, "当前无法中断正在运行的操作。");
+      await this.deps.safeSendMessage(chatId, "Unable to stop the currently running operation.");
     }
   }
 
@@ -353,7 +353,7 @@ export class TurnCoordinator {
     if (!activeTurn || activeTurn.chatId !== chatId) {
       return {
         ok: false,
-        message: "这个按钮已过期，请重新操作。"
+        message: "This button has expired. Please try again."
       };
     }
 
@@ -362,12 +362,12 @@ export class TurnCoordinator {
       await this.deps.getAppServer()?.interruptTurn(activeTurn.threadId, activeTurn.turnId);
       return {
         ok: true,
-        message: "已请求停止这个会话的当前操作。"
+        message: "Interrupt requested for this session's current operation."
       };
     } catch {
       return {
         ok: false,
-        message: "当前无法中断这个会话的操作。"
+        message: "Unable to stop this session's operation."
       };
     }
   }
@@ -408,7 +408,7 @@ export class TurnCoordinator {
     if (!capacity.allowed) {
       await this.deps.safeSendMessage(
         chatId,
-        `当前最多只能并行运行 ${capacity.limit} 个会话，请先等待完成或停止部分任务。`
+        `Maximum concurrent sessions is ${capacity.limit}. Please wait or stop a running session.`
       );
       return;
     }
@@ -447,7 +447,7 @@ export class TurnCoordinator {
         lastTurnId: session.lastTurnId,
         lastTurnStatus: "failed"
       });
-      await this.deps.safeSendMessage(chatId, "Codex 服务暂时不可用，请稍后重试。");
+      await this.deps.safeSendMessage(chatId, "Codex service temporarily unavailable. Please retry later.");
     }
   }
 
@@ -883,7 +883,7 @@ export class TurnCoordinator {
           proposedPlan = turnArtifacts.proposedPlan;
           if (
             turnArtifacts.compactionDetected
-            && !activeTurn.tracker.getInspectSnapshot().recentNoticeSummaries.includes("上下文已压缩")
+            && !activeTurn.tracker.getInspectSnapshot().recentNoticeSummaries.includes("Context compacted")
           ) {
             await this.deps.handleGlobalRuntimeNotice({
               kind: "thread_compaction_completed",
@@ -976,7 +976,7 @@ export class TurnCoordinator {
       lastTurnStatus: classified.status
     });
     this.deps.disposeRuntimeCards(activeTurn);
-    await this.deps.safeSendMessage(activeTurn.chatId, "这次操作未成功完成，请重试。");
+    await this.deps.safeSendMessage(activeTurn.chatId, "This operation did not complete successfully，Please retry。");
   }
 
   async handleActiveTurnAppServerExit(): Promise<void> {
@@ -1006,7 +1006,7 @@ export class TurnCoordinator {
         lastTurnId: runningTurn.turnId,
         lastTurnStatus: "failed"
       });
-      await this.deps.safeSendMessage(runningTurn.chatId, "Codex 服务暂时不可用，请稍后重试。");
+      await this.deps.safeSendMessage(runningTurn.chatId, "Codex service temporarily unavailable. Please retry later.");
     }
   }
 
@@ -1119,7 +1119,7 @@ export class TurnCoordinator {
   }
 
   private async sendFinalAnswer(activeTurn: ActiveTurnState, finalMessage: string | null): Promise<TerminalDeliveryResult> {
-    const text = finalMessage || "本次操作已完成，但没有可返回的最终答复。";
+    const text = finalMessage || "This operation completed, but no final answer was returned.";
     const rendered = buildCollapsibleFinalAnswerView(text, this.getFinalAnswerRenderContext(activeTurn.sessionId));
     await this.deps.logger.info("sending final answer", {
       chatId: activeTurn.chatId,

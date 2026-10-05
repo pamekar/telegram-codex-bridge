@@ -125,19 +125,19 @@ function browserCopy(language: UiLanguage) {
         createSessionUnavailable: "This directory is unavailable. Re-open /new and try again."
       }
     : {
-        noSession: "当前没有活动会话，请先发送 /new 或 /use 进入项目。",
-        unavailableProject: "当前项目目录不可用，请重新选择项目后再试。",
-        unavailableRoot: "当前浏览根目录不可用，请重新发送 /new 后重试。",
-        expired: "这个按钮已过期，请重新发送 /browse。",
-        expiredPreSession: "这个按钮已过期，请重新发送 /new 后再浏览。",
-        updateFailed: "当前无法更新这个浏览消息，请重新发送 /browse。",
-        symlinkUnsupported: "Phase 1 暂不支持浏览符号链接。",
-        imagePreviewSent: "已发送图片预览。",
-        imagePreviewFailed: "暂时无法发送这张图片预览，请稍后重试。",
-        fileInfoFailed: "暂时无法读取这个文件，请稍后重试。",
-        closeFailed: "当前无法关闭这个浏览消息。",
+        noSession: "CurrentNo active sessions，Please send /new or /use to enter a project.",
+        unavailableProject: "Current project directory is unavailable. Please select a project and try again.",
+        unavailableRoot: "Current browse root is unavailable. Please send /new and retry.",
+        expired: "This button has expired. Please resend /browse.",
+        expiredPreSession: "This button has expired. Please send /new then browse.",
+        updateFailed: "Unable to update this browse message. Please resend /browse.",
+        symlinkUnsupported: "Phase 1 Symlink browsing is not supported yet.",
+        imagePreviewSent: "Image preview sent.",
+        imagePreviewFailed: "Cannot send image preview now. Please retry later.",
+        fileInfoFailed: "Cannot read this file now. Please retry later.",
+        closeFailed: "Unable to close this browse message.",
         createSessionSuccessReason: "session_created",
-        createSessionUnavailable: "当前目录不可用，请重新发送 /new 后重试。"
+        createSessionUnavailable: "Current directory is unavailable. Please resend /new and try again."
       };
 }
 

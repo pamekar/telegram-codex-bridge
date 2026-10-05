@@ -53,33 +53,33 @@ function browserCopy(language: UiLanguage) {
         imagePreview: "Image Preview"
       }
     : {
-        title: "文件浏览",
-        project: "当前项目：",
-        location: "当前位置：",
-        page: "页码：",
-        mode: "模式：",
-        readonly: "只读浏览",
-        root: "项目根",
-        empty: "当前目录为空。",
-        previous: "上一页",
-        next: "下一页",
-        up: "上一级",
-        backToRoot: "回到项目根",
-        refresh: "刷新",
-        useCurrentDirectory: "在当前目录新建会话",
-        close: "关闭",
-        previewTitle: "文件预览",
-        file: "文件：",
-        path: "路径：",
-        size: "大小：",
-        modified: "修改时间：",
-        previewPage: "预览页：",
-        previewTruncated: "仅预览前 48 KB。",
-        returnToDirectory: "返回目录",
-        infoTitle: "文件信息",
-        type: "类型：",
-        binary: "二进制或暂不支持预览",
-        imagePreview: "图片预览"
+        title: "File Browser",
+        project: "Current project：",
+        location: "Location:",
+        page: "Page：",
+        mode: "Mode:",
+        readonly: "Read-only browser",
+        root: "Project Root",
+        empty: "Current directory is empty.",
+        previous: "Previous",
+        next: "Next",
+        up: "Up",
+        backToRoot: "Project Root",
+        refresh: "Refresh",
+        useCurrentDirectory: "New session in current directory",
+        close: "Close",
+        previewTitle: "File Preview",
+        file: "File: ",
+        path: "Path: ",
+        size: "Size: ",
+        modified: "Modified: ",
+        previewPage: "Preview page：",
+        previewTruncated: "Previewing only the first 48 KB.",
+        returnToDirectory: "Back to Directory",
+        infoTitle: "File Info",
+        type: "Type:",
+        binary: "Binary or unsupported preview",
+        imagePreview: "Image Preview"
       };
 }
 
@@ -187,15 +187,15 @@ export function buildProjectBrowserUseCurrentDirectoryConfirmMessage(options: {
 } {
   return {
     text: [
-      formatHtmlHeading("确认新建会话"),
-      formatHtmlField("目录：", options.directoryPath),
-      formatHtmlField("显示名：", options.projectName),
-      "要在这个目录新建会话吗？"
+      formatHtmlHeading("Confirm New Session"),
+      formatHtmlField("Directory：", options.directoryPath),
+      formatHtmlField("Display Name:", options.projectName),
+      "Create a new session in this directory?"
     ].join("\n"),
     replyMarkup: {
       inline_keyboard: [
-        [{ text: "确认新建会话", callback_data: encodeBrowseUseCurrentDirConfirmCallback(options.token) }],
-        [{ text: "返回目录", callback_data: encodeBrowseUseCurrentDirCancelCallback(options.token) }]
+        [{ text: "Confirm New Session", callback_data: encodeBrowseUseCurrentDirConfirmCallback(options.token) }],
+        [{ text: "Back to Directory", callback_data: encodeBrowseUseCurrentDirCancelCallback(options.token) }]
       ]
     }
   };

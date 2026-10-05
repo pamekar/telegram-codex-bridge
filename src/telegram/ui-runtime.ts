@@ -107,7 +107,7 @@ export interface RuntimeStatusFieldOptionView {
 
 const RUNTIME_FIELD_PAGE_SIZE = 4;
 const ROLLBACK_TARGET_PAGE_SIZE = 6;
-const HUB_COMMAND_REMINDER_TEXT = "💡 提示：需要查看运行卡片时，可发送 /hub。";
+const HUB_COMMAND_REMINDER_TEXT = "💡 Tip: Send /hub to view or refresh the Hub.";
 const HUB_SECTION_DIVIDER = "━━━━━━━━━━━━━━━━━━";
 const INSPECT_PAGE_CHAR_LIMIT = 3200;
 
@@ -118,10 +118,10 @@ export function buildRuntimeStatusCard(options: RuntimeStatusCardView): string {
   const expandedPlanEntryTextLimit = options.expandedPlanEntryTextLimit ?? 200;
   const expandedAgentLimit = options.expandedAgentLimit ?? 10;
   const expandedAgentProgressTextLimit = options.expandedAgentProgressTextLimit ?? 160;
-  const lines: string[] = [formatHtmlHeading(language === "en" ? "Runtime Status" : "运行状态")];
+  const lines: string[] = [formatHtmlHeading(language === "en" ? "Runtime Status" : "Runtime")];
   pushHtmlRuntimeCardContext(lines, options, language);
 
-  lines.push(formatRuntimeCardRow(language === "en" ? "State" : "状态", options.state));
+  lines.push(formatRuntimeCardRow(language === "en" ? "State" : "Status", options.state));
 
   for (const line of options.optionalFieldLines ?? []) {
     lines.push(formatRuntimeStatusOptionalField(line, language));
@@ -130,10 +130,10 @@ export function buildRuntimeStatusCard(options: RuntimeStatusCardView): string {
   if (options.progressText) {
     const progressText = renderInlineMarkdown(truncateText(options.progressText, progressTextLimit));
     if (stripHtml(progressText).length > 72) {
-      lines.push(formatHtmlHeading(language === "en" ? "Progress" : "进度"));
+      lines.push(formatHtmlHeading(language === "en" ? "Progress" : "Progress"));
       lines.push(progressText);
     } else {
-      lines.push(formatRuntimeCardRow(language === "en" ? "Progress" : "进度", progressText, { valueIsHtml: true }));
+      lines.push(formatRuntimeCardRow(language === "en" ? "Progress" : "Progress", progressText, { valueIsHtml: true }));
     }
   }
 
@@ -166,7 +166,7 @@ export function buildRuntimeStatusReplyMarkup(options: RuntimeStatusControlsView
   if (options.planEntries.length > 0) {
     rows.push([{
       text: options.planExpanded
-        ? (language === "en" ? "Hide Plan" : "收起计划清单")
+        ? (language === "en" ? "Hide Plan" : "Collapse Plan")
         : buildCollapsedPlanButtonLabel(options.planEntries, language),
       callback_data: options.planExpanded
         ? encodePlanCollapseCallback(options.sessionId)
@@ -177,7 +177,7 @@ export function buildRuntimeStatusReplyMarkup(options: RuntimeStatusControlsView
   if (options.agentEntries.length > 0) {
     rows.push([{
       text: options.agentsExpanded
-        ? (language === "en" ? "Hide Agents" : "收起 Agent")
+        ? (language === "en" ? "Hide Agents" : "Hide Agents")
         : buildCollapsedAgentButtonLabel(options.agentEntries, language),
       callback_data: options.agentsExpanded
         ? encodeAgentCollapseCallback(options.sessionId)
@@ -187,15 +187,15 @@ export function buildRuntimeStatusReplyMarkup(options: RuntimeStatusControlsView
 
   rows.push([
     {
-      text: language === "en" ? "Inspect" : "查看详情",
+      text: language === "en" ? "Inspect" : "Inspect",
       callback_data: encodeStatusInspectCallback(options.sessionId)
     },
     {
-      text: language === "en" ? "Commands" : "命令",
+      text: language === "en" ? "Commands" : "Command",
       callback_data: encodeCommandPanelOpenCallback()
     },
     {
-      text: language === "en" ? "Interrupt" : "中断操作",
+      text: language === "en" ? "Interrupt" : "Stopoperation",
       callback_data: encodeStatusInterruptCallback(options.sessionId)
     }
   ]);
@@ -222,12 +222,12 @@ export function buildRuntimeHubMessage(options: RuntimeHubView): string {
   const lines: string[] = [buildRuntimeHubHeading(
     language === "en"
       ? `Hub: ${options.windowIndex + 1}/${Math.max(1, options.totalWindows)}${options.completed ? " · Completed" : ""}`
-      : `目录：${options.windowIndex + 1}/${Math.max(1, options.totalWindows)}${options.completed ? " · 已完成" : ""}`
+      : `Slot ${options.windowIndex + 1}/${Math.max(1, options.totalWindows)}${options.completed ? " · Done" : ""}`
   )];
 
   if (usesSlotSections) {
     if (options.currentViewedSession) {
-      pushRuntimeHubSectionHeading(lines, language === "en" ? "Current viewed session" : "当前查看中的会话");
+      pushRuntimeHubSectionHeading(lines, language === "en" ? "Current viewed session" : "Viewed Session");
       pushRuntimeHubSession(lines, options.currentViewedSession, null, {
         language,
         progressTextLimit: currentViewedSessionProgressTextLimit,
@@ -253,7 +253,7 @@ export function buildRuntimeHubMessage(options: RuntimeHubView): string {
     }
 
     if ((options.otherSessions?.length ?? 0) > 0) {
-      pushRuntimeHubSectionHeading(lines, language === "en" ? "Other running sessions" : "其他运行中的会话");
+      pushRuntimeHubSectionHeading(lines, language === "en" ? "Other running sessions" : "Other Running Sessions");
       for (const session of options.otherSessions ?? []) {
         pushRuntimeHubSession(lines, session, null, {
           language,
@@ -265,7 +265,7 @@ export function buildRuntimeHubMessage(options: RuntimeHubView): string {
     }
 
     if ((options.recentEndedSessions?.length ?? 0) > 0) {
-      pushRuntimeHubSectionHeading(lines, language === "en" ? "Recent ended sessions" : "最近结束的会话");
+      pushRuntimeHubSectionHeading(lines, language === "en" ? "Recent ended sessions" : "Recently Completed");
       for (const session of options.recentEndedSessions ?? []) {
         pushRuntimeHubSession(lines, session, null, {
           language,
@@ -304,11 +304,11 @@ export function buildRuntimeHubMessage(options: RuntimeHubView): string {
   lines[0] = buildRuntimeHubHeading(
     language === "en"
       ? `Hub: ${options.windowIndex + 1}/${Math.max(1, options.totalWindows)} · ${(options.totalSessions ?? sessions.length)} session${(options.totalSessions ?? sessions.length) === 1 ? "" : "s"}`
-      : `目录：${options.windowIndex + 1}/${Math.max(1, options.totalWindows)} · ${options.totalSessions ?? sessions.length} 个会话`
+      : `Slot ${options.windowIndex + 1}/${Math.max(1, options.totalWindows)} · ${options.totalSessions ?? sessions.length} session(s)`
   );
 
   if (activeInputSession) {
-    pushRuntimeHubSectionHeading(lines, language === "en" ? "Current input session" : "当前输入会话");
+    pushRuntimeHubSectionHeading(lines, language === "en" ? "Current input session" : "Current input session");
     if (genericSessionLayout === "compact") {
       pushCompactRuntimeHubSession(lines, activeInputSession, null, {
         language,
@@ -327,8 +327,8 @@ export function buildRuntimeHubMessage(options: RuntimeHubView): string {
   if (focusedSession) {
     pushRuntimeHubSectionHeading(lines,
       sessionCollectionKind === "running"
-        ? (language === "en" ? "Focused running session" : "当前查看中的运行会话")
-        : (language === "en" ? "Focused session" : "当前查看中的会话")
+        ? (language === "en" ? "Focused running session" : "Viewing the running sessions")
+        : (language === "en" ? "Focused session" : "Viewed Session")
     );
     if (genericSessionLayout === "compact") {
       pushCompactRuntimeHubSession(lines, focusedSession, 1, {
@@ -364,8 +364,8 @@ export function buildRuntimeHubMessage(options: RuntimeHubView): string {
   if (otherSessions.length > 0 || hiddenOtherSessionCount > 0) {
     pushRuntimeHubSectionHeading(lines,
       sessionCollectionKind === "running"
-        ? (language === "en" ? "Other running sessions" : "其他运行中的会话")
-        : (language === "en" ? "Other sessions" : "其他会话")
+        ? (language === "en" ? "Other running sessions" : "Other Running Sessions")
+        : (language === "en" ? "Other sessions" : "OtherSessions")
     );
     for (const [index, session] of otherSessions.entries()) {
       if (genericSessionLayout === "compact") {
@@ -386,12 +386,12 @@ export function buildRuntimeHubMessage(options: RuntimeHubView): string {
     if (hiddenOtherSessionCount > 0) {
       lines.push(language === "en"
         ? `... ${hiddenOtherSessionCount} more sessions not shown`
-        : `... 还有 ${hiddenOtherSessionCount} 个会话未显示`);
+        : `... and ${hiddenOtherSessionCount} more session(s) hidden`);
     }
   }
 
   if (options.isMainHub && (options.terminalSummaries?.length ?? 0) > 0) {
-    pushRuntimeHubSectionHeading(lines, language === "en" ? "Recent terminal sessions" : "最近结束的会话");
+    pushRuntimeHubSectionHeading(lines, language === "en" ? "Recent terminal sessions" : "Recently Completed");
 
     for (const [index, summary] of (options.terminalSummaries ?? []).entries()) {
       pushRuntimeHubTerminalSummary(lines, summary, index + 1, language);
@@ -427,7 +427,7 @@ function appendExpandedPlanSection(
     return;
   }
 
-  lines.push("", `<b>${options.language === "en" ? "Plan:" : "计划清单:"}</b>`);
+  lines.push("", `<b>${options.language === "en" ? "Plan:" : "Plan:"}</b>`);
 
   for (const [index, entry] of options.entries.slice(0, options.entryLimit).entries()) {
     lines.push(`${index + 1}. ${renderInlineMarkdown(truncateText(entry, options.entryTextLimit))}`);
@@ -436,7 +436,7 @@ function appendExpandedPlanSection(
   if (options.entries.length > options.entryLimit) {
     lines.push(options.language === "en"
       ? `... ${options.entries.length - options.entryLimit} more steps`
-      : `... 还有 ${options.entries.length - options.entryLimit} 个步骤`);
+      : `... and ${options.entries.length - options.entryLimit} more step(s)`);
   }
 }
 
@@ -463,7 +463,7 @@ function appendExpandedAgentSection(
   if (options.entries.length > options.entryLimit) {
     lines.push(options.language === "en"
       ? `... ${options.entries.length - options.entryLimit} more agents`
-      : `... 还有 ${options.entries.length - options.entryLimit} 个 Agent`);
+      : `... and ${options.entries.length - options.entryLimit} more agent(s)`);
   }
 }
 
@@ -481,7 +481,7 @@ function appendExpandedHubPlanSection(
     return;
   }
 
-  pushRuntimeHubSectionHeading(lines, options.language === "en" ? "Plan Details" : "计划详情");
+  pushRuntimeHubSectionHeading(lines, options.language === "en" ? "Plan Details" : "PlanInspect");
 
   for (const [index, entry] of options.entries.slice(0, options.entryLimit).entries()) {
     lines.push(renderHubPlanEntryLine(entry, index + 1, options.language, options.entryTextLimit));
@@ -490,7 +490,7 @@ function appendExpandedHubPlanSection(
   if (options.entries.length > options.entryLimit) {
     lines.push(options.language === "en"
       ? `... ${options.entries.length - options.entryLimit} more plan items`
-      : `... 还有 ${options.entries.length - options.entryLimit} 项计划`);
+      : `... and ${options.entries.length - options.entryLimit} more plan item(s)`);
   }
 }
 
@@ -508,7 +508,7 @@ function appendExpandedHubAgentSection(
     return;
   }
 
-  pushRuntimeHubSectionHeading(lines, options.language === "en" ? "Collab Agents" : "协作 Agent");
+  pushRuntimeHubSectionHeading(lines, options.language === "en" ? "Collab Agents" : "Collab Agents");
 
   for (const entry of options.entries.slice(0, options.entryLimit)) {
     lines.push(renderHubAgentDetailLine(entry, options.language, options.entryProgressTextLimit));
@@ -517,7 +517,7 @@ function appendExpandedHubAgentSection(
   if (options.entries.length > options.entryLimit) {
     lines.push(options.language === "en"
       ? `... ${options.entries.length - options.entryLimit} more agents`
-      : `... 还有 ${options.entries.length - options.entryLimit} 个 Agent`);
+      : `... and ${options.entries.length - options.entryLimit} more agent(s)`);
   }
 }
 
@@ -534,15 +534,15 @@ function pushRuntimeHubSession(
 ): void {
   const markers = options.showMarkers
     ? [
-      session.isFocused ? (options.language === "en" ? "Viewing" : "查看中") : null,
-      session.isActiveInputTarget ? (options.language === "en" ? "Current input" : "当前输入") : null
+      session.isFocused ? (options.language === "en" ? "Viewing" : "Viewing") : null,
+      session.isActiveInputTarget ? (options.language === "en" ? "Current input" : "Current input") : null
     ].filter((value): value is string => Boolean(value))
     : [];
   const markerText = !options.emphasizeMarkers && markers.length > 0
     ? ` · ${markers.map((marker) => escapeHtml(marker)).join(" · ")}`
     : "";
   const displayIndex = session.slot ?? index;
-  const statePrefix = options.language === "en" ? "State" : "状态";
+  const statePrefix = options.language === "en" ? "State" : "Status";
   const folderLine = buildRuntimeHubFolderLine(session.sessionName, session.projectName);
 
   lines.push(HUB_SECTION_DIVIDER);
@@ -575,8 +575,8 @@ function pushCompactRuntimeHubSession(
 ): void {
   const markers = options.showMarkers
     ? [
-      session.isFocused ? (options.language === "en" ? "Viewing" : "查看中") : null,
-      session.isActiveInputTarget ? (options.language === "en" ? "Current input" : "当前输入") : null
+      session.isFocused ? (options.language === "en" ? "Viewing" : "Viewing") : null,
+      session.isActiveInputTarget ? (options.language === "en" ? "Current input" : "Current input") : null
     ].filter((value): value is string => Boolean(value))
     : [];
   const displayIndex = session.slot ?? index;
@@ -586,7 +586,7 @@ function pushCompactRuntimeHubSession(
   if (folderMeta) {
     metaParts.push(folderMeta);
   }
-  metaParts.push(`${options.language === "en" ? "State" : "状态"}: ${escapeHtml(session.state)}`);
+  metaParts.push(`${options.language === "en" ? "State" : "Status"}: ${escapeHtml(session.state)}`);
   for (const marker of markers) {
     metaParts.push(escapeHtml(marker));
   }
@@ -599,7 +599,7 @@ function pushCompactRuntimeHubSession(
 function buildRuntimeSurfaceFooter(language: UiLanguage): string {
   return language === "en"
     ? "💡 Tip: Use /inspect for full details. Use /interrupt to stop the current turn. Use /status for runtime details."
-    : "💡 提示：使用 /inspect 查看详情，使用 /interrupt 打断，使用 /status 查看状态。";
+    : "💡 Tip: Use /inspect for details, /interrupt to stop, /status for status.";
 }
 
 function buildRuntimeHubFooter(_language: UiLanguage): string {
@@ -629,13 +629,13 @@ function buildRuntimeHubFolderLine(sessionName: string, projectName?: string | n
 function buildRuntimeHubStateBadge(state: string): string {
   const normalized = state.trim().toLowerCase();
 
-  if (/(completed|已完成|archived|归档)/u.test(normalized)) {
+  if (/(completed|Done|archived)/u.test(normalized)) {
     return "🏁";
   }
-  if (/(failed|失败|interrupted|已中断)/u.test(normalized)) {
+  if (/(failed|Failed|interrupted|Stopped)/u.test(normalized)) {
     return "⛔";
   }
-  if (/(running|执行中|starting|准备中|reconnecting)/u.test(normalized)) {
+  if (/(running|Running|starting|Preparing|reconnecting)/u.test(normalized)) {
     return "🟢";
   }
   return "🟡";
@@ -648,7 +648,7 @@ function pushRuntimeHubTerminalSummary(
   language: UiLanguage
 ): void {
   const folderLine = buildRuntimeHubFolderLine(summary.sessionName, summary.projectName);
-  const stateLabel = language === "en" ? "State" : "状态";
+  const stateLabel = language === "en" ? "State" : "Status";
 
   lines.push(HUB_SECTION_DIVIDER);
   lines.push(`${buildRuntimeHubStateBadge(summary.state)} <b>${index}. ${escapeHtml(summary.sessionName)}</b>`);
@@ -699,9 +699,9 @@ export function buildRuntimeHubReplyMarkup(options: {
           : "default";
         return {
           text: session.isFocused
-            ? `${language === "en" ? "Viewing" : "查看中"} · ${truncateText(session.sessionName, 18)}`
+            ? `${language === "en" ? "Viewing" : "Viewing"} · ${truncateText(session.sessionName, 18)}`
             : session.isActiveInputTarget
-              ? `${language === "en" ? "Current" : "当前"} · ${truncateText(session.sessionName, 18)}`
+              ? `${language === "en" ? "Current" : "Current"} · ${truncateText(session.sessionName, 18)}`
               : truncateText(session.sessionName, 18),
           callback_data: encodeHubSelectCallback(options.token, options.callbackVersion, index),
           style
@@ -740,7 +740,7 @@ function appendHubSecondaryButtons(
   if (focusedSessionId && (planEntries?.length ?? 0) > 0) {
     buttons.push({
       text: planExpanded
-        ? (language === "en" ? "Hide Plan" : "收起计划清单")
+        ? (language === "en" ? "Hide Plan" : "Collapse Plan")
         : buildCollapsedPlanButtonLabel(planEntries ?? [], language),
       callback_data: planExpanded
         ? encodePlanCollapseCallback(focusedSessionId)
@@ -751,7 +751,7 @@ function appendHubSecondaryButtons(
   if (focusedSessionId && (agentEntries?.length ?? 0) > 0) {
     buttons.push({
       text: agentsExpanded
-        ? (language === "en" ? "Hide Agents" : "收起 Agent")
+        ? (language === "en" ? "Hide Agents" : "Hide Agents")
         : buildCollapsedAgentButtonLabel(agentEntries ?? [], language),
       callback_data: agentsExpanded
         ? encodeAgentCollapseCallback(focusedSessionId)
@@ -769,7 +769,7 @@ function appendHubSecondaryButtons(
   }
 
   rows.push([{
-    text: language === "en" ? "Commands" : "命令",
+    text: language === "en" ? "Commands" : "Command",
     callback_data: encodeCommandPanelOpenCallback()
   }]);
 }
@@ -777,83 +777,83 @@ function appendHubSecondaryButtons(
 export function buildRuntimeStatusFieldLabel(field: RuntimeStatusField): string {
   switch (field) {
     case "model-name":
-      return "模型名";
+      return "Model";
     case "model-with-reasoning":
-      return "模型 + 推理强度";
+      return "Model + Reasoning Effort";
     case "current-dir":
-      return "当前目录";
+      return "CurrentDirectory";
     case "project-root":
-      return "项目根目录";
+      return "Project Root";
     case "git-branch":
-      return "Git 分支";
+      return "Git Branch";
     case "context-remaining":
-      return "剩余上下文";
+      return "Remaining Context";
     case "context-used":
-      return "已用上下文";
+      return "Used Context";
     case "five-hour-limit":
-      return "5 小时额度";
+      return "5-Hour Quota";
     case "weekly-limit":
-      return "周额度";
+      return "Weekly Quota";
     case "codex-version":
-      return "Codex 版本";
+      return "Codex Version";
     case "context-window-size":
-      return "上下文窗口大小";
+      return "Context Window Size";
     case "used-tokens":
-      return "已用 Token";
+      return "Used Tokens";
     case "total-input-tokens":
-      return "累计输入 Token";
+      return "Total Input Tokens";
     case "total-output-tokens":
-      return "累计输出 Token";
+      return "Total Output Tokens";
     case "session-id":
-      return "会话 ID";
+      return "Sessions ID";
     case "session_name":
-      return "会话名";
+      return "Session Name";
     case "project_name":
-      return "项目名";
+      return "Project name";
     case "project_path":
-      return "项目路径（旧）";
+      return "Project Path (Legacy)";
     case "plan_mode":
       return "Plan mode";
     case "model_reasoning":
-      return "模型 + 强度（旧）";
+      return "Model + Effort (Legacy)";
     case "thread_id":
-      return "线程 ID（旧）";
+      return "Thread ID (Legacy)";
     case "turn_id":
       return "Turn ID";
     case "blocked_reason":
-      return "阻塞原因";
+      return "Blocked Reason";
     case "current_step":
-      return "当前步骤";
+      return "Current Step";
     case "last_token_usage":
-      return "本次 Token";
+      return "Tokens This Turn";
     case "total_token_usage":
-      return "累计 Token";
+      return "Total Tokens";
     case "context_window":
-      return "上下文窗口";
+      return "Context Window";
     case "final_answer_ready":
-      return "最终答复已就绪";
+      return "Final Answer Ready";
   }
 }
 
 export function buildRuntimePreferencesAppliedMessage(fields: RuntimeStatusField[]): string {
   const summary = fields.length > 0
-    ? fields.map((field) => buildRuntimeStatusFieldLabel(field)).join("、")
-    : "无";
+    ? fields.map((field) => buildRuntimeStatusFieldLabel(field)).join(", ")
+    : "None";
 
   return [
-    "<b>已应用 Runtime 卡片字段</b>",
-    formatHtmlField("当前字段：", summary)
+    "<b>Applied Runtime Card Fields</b>",
+    formatHtmlField("Current fields:", summary)
   ].join("\n");
 }
 
 export function buildRuntimePreferencesClosedMessage(fields: RuntimeStatusField[]): string {
   const summary = fields.length > 0
-    ? fields.map((field) => buildRuntimeStatusFieldLabel(field)).join("、")
-    : "无";
+    ? fields.map((field) => buildRuntimeStatusFieldLabel(field)).join(", ")
+    : "None";
 
   return [
-    formatHtmlHeading("已关闭 Runtime 卡片字段选择"),
-    formatHtmlField("当前字段：", summary)
+    formatHtmlHeading("Closed Runtime Card Field Selection"),
+    formatHtmlField("Current fields:", summary)
   ].join("\n");
 }
 
@@ -875,40 +875,40 @@ export function buildRuntimePreferencesMessage(options: RuntimePreferencesView):
 
   const selectedSummary = options.fields.length > 0
     ? options.fields.map((field, index) => `${index + 1}. ${buildRuntimeStatusFieldLabel(field)}`).join("\n")
-    : "当前没有已选字段。";
+    : "No fields selected.";
 
   const rows = pageFields.map((field) => [{
-    text: `${selectedSet.has(field) ? "✓" : "＋"} ${buildRuntimeStatusFieldLabel(field)}`,
+    text: `${selectedSet.has(field) ? "✓" : "+"} ${buildRuntimeStatusFieldLabel(field)}`,
     callback_data: encodeRuntimeToggleCallback(options.token, field)
   }]);
 
   const navigation: Array<{ text: string; callback_data: string }> = [];
   if (safePage > 0) {
-    navigation.push({ text: "上一页", callback_data: encodeRuntimePageCallback(options.token, safePage - 1) });
+    navigation.push({ text: "Previous", callback_data: encodeRuntimePageCallback(options.token, safePage - 1) });
   }
   if (safePage + 1 < totalPages) {
-    navigation.push({ text: "下一页", callback_data: encodeRuntimePageCallback(options.token, safePage + 1) });
+    navigation.push({ text: "Next", callback_data: encodeRuntimePageCallback(options.token, safePage + 1) });
   }
   if (navigation.length > 0) {
     rows.push(navigation);
   }
 
-  rows.push([{ text: "保存并应用", callback_data: encodeRuntimeSaveCallback(options.token) }]);
-  rows.push([{ text: "恢复默认", callback_data: encodeRuntimeResetCallback(options.token) }]);
-  rows.push([{ text: "关闭", callback_data: encodeRuntimeCloseCallback(options.token) }]);
+  rows.push([{ text: "Save & Apply", callback_data: encodeRuntimeSaveCallback(options.token) }]);
+  rows.push([{ text: "ResumeDefault", callback_data: encodeRuntimeResetCallback(options.token) }]);
+  rows.push([{ text: "Close", callback_data: encodeRuntimeCloseCallback(options.token) }]);
 
   return {
     text: [
-      formatHtmlHeading("Runtime 卡片字段"),
-      "按按钮选择要显示的字段。",
-      "选择顺序就是显示顺序；新选中的字段会追加到末尾。",
-      formatHtmlField("Codex CLI：", buildRuntimeStatusFieldGroupSummary(SELECTABLE_CODEX_CLI_RUNTIME_STATUS_FIELDS)),
-      formatHtmlField("Bridge Extensions：", buildRuntimeStatusFieldGroupSummary(BRIDGE_EXTENSION_RUNTIME_STATUS_FIELDS)),
-      formatHtmlField("当前分组：", currentPage.groupLabel),
-      formatHtmlField("已选字段：", `${options.fields.length} 个`),
+      formatHtmlHeading("Runtime Card Fields"),
+      "Click buttons to select fields to display.",
+      "Selection order determines display order. Newly selected fields will be appended.",
+      formatHtmlField("Codex CLI: ", buildRuntimeStatusFieldGroupSummary(SELECTABLE_CODEX_CLI_RUNTIME_STATUS_FIELDS)),
+      formatHtmlField("Bridge Extensions: ", buildRuntimeStatusFieldGroupSummary(BRIDGE_EXTENSION_RUNTIME_STATUS_FIELDS)),
+      formatHtmlField("Current group:", currentPage.groupLabel),
+      formatHtmlField("Selected:", `${options.fields.length}`),
       selectedSummary,
-      formatHtmlField("分组页码：", `${currentPage.groupPage + 1}/${currentPage.groupPageCount}`),
-      formatHtmlField("总页码：", `${safePage + 1}/${totalPages}`)
+      formatHtmlField("Group page:", `${currentPage.groupPage + 1}/${currentPage.groupPageCount}`),
+      formatHtmlField("Total page:", `${safePage + 1}/${totalPages}`)
     ].join("\n"),
     replyMarkup: {
       inline_keyboard: rows
@@ -930,15 +930,15 @@ export function buildInspectViewMessage(options: RuntimeInspectView & RuntimeIns
       replyMarkup: {
         inline_keyboard: [[
           {
-            text: "展开详情",
+            text: "Expand Inspect",
             callback_data: encodeInspectExpandCallback(options.sessionId, safePage)
           },
           {
-            text: "命令",
+            text: "Command",
             callback_data: encodeCommandPanelOpenCallback()
           },
           {
-            text: "关闭",
+            text: "Close",
             callback_data: encodeInspectCloseCallback(options.sessionId)
           }
         ]]
@@ -949,10 +949,10 @@ export function buildInspectViewMessage(options: RuntimeInspectView & RuntimeIns
 
   const buttons: Array<{ text: string; callback_data: string }> = [];
   if (safePage > 0) {
-    buttons.push({ text: "上一页", callback_data: encodeInspectPageCallback(options.sessionId, safePage - 1) });
+    buttons.push({ text: "Previous", callback_data: encodeInspectPageCallback(options.sessionId, safePage - 1) });
   }
   if (safePage + 1 < pages.length) {
-    buttons.push({ text: "下一页", callback_data: encodeInspectPageCallback(options.sessionId, safePage + 1) });
+    buttons.push({ text: "Next", callback_data: encodeInspectPageCallback(options.sessionId, safePage + 1) });
   }
 
   const rows: TelegramInlineKeyboardMarkup["inline_keyboard"] = [];
@@ -960,13 +960,13 @@ export function buildInspectViewMessage(options: RuntimeInspectView & RuntimeIns
     rows.push(buttons);
   }
   rows.push([
-    { text: "收起详情", callback_data: encodeInspectCollapseCallback(options.sessionId) },
-    { text: "命令", callback_data: encodeCommandPanelOpenCallback() },
-    { text: "关闭", callback_data: encodeInspectCloseCallback(options.sessionId) }
+    { text: "Collapse Inspect", callback_data: encodeInspectCollapseCallback(options.sessionId) },
+    { text: "Command", callback_data: encodeCommandPanelOpenCallback() },
+    { text: "Close", callback_data: encodeInspectCloseCallback(options.sessionId) }
   ]);
 
   return {
-    text: `${pages[safePage]}\n\n${formatHtmlField("详情页：", `${safePage + 1}/${pages.length}`)}`,
+    text: `${pages[safePage]}\n\n${formatHtmlField("Inspect page: ", `${safePage + 1}/${pages.length}`)}`,
     replyMarkup: {
       inline_keyboard: rows
     },
@@ -989,20 +989,20 @@ export function buildRollbackPickerMessage(options: RollbackPickerView): {
 
   const navigation: Array<{ text: string; callback_data: string }> = [];
   if (safePage > 0) {
-    navigation.push({ text: "上一页", callback_data: encodeRollbackPageCallback(options.sessionId, safePage - 1) });
+    navigation.push({ text: "Previous", callback_data: encodeRollbackPageCallback(options.sessionId, safePage - 1) });
   }
   if (safePage + 1 < totalPages) {
-    navigation.push({ text: "下一页", callback_data: encodeRollbackPageCallback(options.sessionId, safePage + 1) });
+    navigation.push({ text: "Next", callback_data: encodeRollbackPageCallback(options.sessionId, safePage + 1) });
   }
   if (navigation.length > 0) {
     rows.push(navigation);
   }
-  rows.push([{ text: "关闭", callback_data: encodeRollbackCloseCallback(options.sessionId) }]);
+  rows.push([{ text: "Close", callback_data: encodeRollbackCloseCallback(options.sessionId) }]);
 
   const lines = [
-    formatHtmlHeading("选择回滚目标"),
-    "只展示用户输入，不展示 agent 输出。",
-    formatHtmlField("页码：", `${safePage + 1}/${totalPages}`)
+    formatHtmlHeading("Select Rollback Target"),
+    "Show user input only, hide agent output.",
+    formatHtmlField("Page: ", `${safePage + 1}/${totalPages}`)
   ];
 
   pageTargets.forEach((target) => {
@@ -1024,16 +1024,16 @@ export function buildRollbackConfirmMessage(options: RollbackConfirmView): {
 } {
   return {
     text: [
-      formatHtmlHeading("确认回滚"),
-      formatHtmlField("目标：", `${options.target.sequenceNumber}. ${options.target.label}`),
-      formatHtmlField("将删除的 turn 数：", `${options.target.rollbackCount}`),
-      "本地文件改动不会自动撤销。"
+      formatHtmlHeading("Confirm Rollback"),
+      formatHtmlField("Target: ", `${options.target.sequenceNumber}. ${options.target.label}`),
+      formatHtmlField("Turns to delete:", `${options.target.rollbackCount}`),
+      "Local file changes will not be automatically undone."
     ].join("\n"),
     replyMarkup: {
       inline_keyboard: [
-        [{ text: "确认回滚", callback_data: encodeRollbackConfirmCallback(options.sessionId, options.target.index) }],
-        [{ text: "返回列表", callback_data: encodeRollbackBackCallback(options.sessionId, options.page) }],
-        [{ text: "关闭", callback_data: encodeRollbackCloseCallback(options.sessionId) }]
+        [{ text: "Confirm Rollback", callback_data: encodeRollbackConfirmCallback(options.sessionId, options.target.index) }],
+        [{ text: "Back to List", callback_data: encodeRollbackBackCallback(options.sessionId, options.page) }],
+        [{ text: "Close", callback_data: encodeRollbackCloseCallback(options.sessionId) }]
       ]
     }
   };
@@ -1041,15 +1041,15 @@ export function buildRollbackConfirmMessage(options: RollbackConfirmView): {
 
 export function buildRollbackClosedMessage(): string {
   return [
-    formatHtmlHeading("已关闭回滚目标选择"),
-    "未执行回滚。"
+    formatHtmlHeading("Closed Rollback Target Selection"),
+    "Rollback not executed."
   ].join("\n");
 }
 
 export function buildInspectClosedMessage(): string {
   return [
-    formatHtmlHeading("已关闭活动详情"),
-    "重新发送 /inspect 可再次打开。"
+    formatHtmlHeading("Closed Active Inspect"),
+    "Send /inspect again to reopen."
   ].join("\n");
 }
 
@@ -1101,12 +1101,12 @@ export function buildInteractionApprovalCard(options: InteractionApprovalCardRen
   replyMarkup: TelegramInlineKeyboardMarkup;
 } {
   const language: UiLanguage = "zh";
-  const lines = [formatHtmlHeading(options.title), formatHtmlField("类型：", options.subtitle)];
+  const lines = [formatHtmlHeading(options.title), formatHtmlField("Type:", options.subtitle)];
   if (options.body) {
-    lines.push(formatHtmlField("内容：", options.body));
+    lines.push(formatHtmlField("Content: ", options.body));
   }
   if (options.detail) {
-    lines.push(formatHtmlField("说明：", options.detail));
+    lines.push(formatHtmlField("Note: ", options.detail));
   }
   appendInteractionHubHint(lines, options.hubHint);
 
@@ -1121,7 +1121,7 @@ export function buildInteractionApprovalCard(options: InteractionApprovalCardRen
       inline_keyboard: (() => {
         const rows: TelegramInlineKeyboardMarkup["inline_keyboard"] = [
         actionRow,
-        [{ text: "取消本次交互", callback_data: encodeInteractionCancelCallback(options.interactionId) }]
+        [{ text: "Cancel this interaction", callback_data: encodeInteractionCancelCallback(options.interactionId) }]
         ];
         appendBridgeActionRows(rows, options.bridgeActions, language, { chunkSize: 2 });
         return rows;
@@ -1137,24 +1137,24 @@ export function buildInteractionQuestionCard(options: InteractionQuestionCardRen
   const language: UiLanguage = "zh";
   const lines = [
     formatHtmlHeading(options.title),
-    formatHtmlField("问题：", `${options.questionIndex}/${options.totalQuestions}`),
-    formatHtmlField("标题：", options.header),
+    formatHtmlField("Issues: ", `${options.questionIndex}/${options.totalQuestions}`),
+    formatHtmlField("Title: ", options.header),
     escapeHtml(options.question)
   ];
 
   if (options.isSecret) {
-    lines.push("<i>这条回答会按敏感输入处理，不会进入可见摘要。</i>");
+    lines.push("<i>This answer will be treated as sensitive input and won't appear in visible summaries.</i>");
   }
 
   if (options.awaitingText) {
-    lines.push("<i>当前正在等待你直接发送这条问题的文字回答。</i>");
+    lines.push("<i>Please type your text answer to this question directly.</i>");
     appendInteractionHubHint(lines, options.hubHint);
     return {
       text: lines.join("\n"),
       replyMarkup: {
         inline_keyboard: (() => {
           const rows: TelegramInlineKeyboardMarkup["inline_keyboard"] = [
-            [{ text: "取消本次交互", callback_data: encodeInteractionCancelCallback(options.interactionId) }]
+            [{ text: "Cancel this interaction", callback_data: encodeInteractionCancelCallback(options.interactionId) }]
           ];
           appendBridgeActionRows(rows, options.bridgeActions, language, { chunkSize: 2 });
           return rows;
@@ -1164,15 +1164,15 @@ export function buildInteractionQuestionCard(options: InteractionQuestionCardRen
   }
 
   if (!options.options || options.options.length === 0) {
-    lines.push("<i>点击下方按钮后，直接在聊天里发送你的回答。</i>");
+    lines.push("<i>Click the button below, then type your answer in the chat.</i>");
     appendInteractionHubHint(lines, options.hubHint);
     return {
       text: lines.join("\n"),
       replyMarkup: {
         inline_keyboard: (() => {
           const rows: TelegramInlineKeyboardMarkup["inline_keyboard"] = [
-          [{ text: "发送文字回答", callback_data: encodeInteractionTextCallback(options.interactionId, options.questionIndex - 1) }],
-          [{ text: "取消本次交互", callback_data: encodeInteractionCancelCallback(options.interactionId) }]
+          [{ text: "Send Text Answer", callback_data: encodeInteractionTextCallback(options.interactionId, options.questionIndex - 1) }],
+          [{ text: "Cancel this interaction", callback_data: encodeInteractionCancelCallback(options.interactionId) }]
           ];
           appendBridgeActionRows(rows, options.bridgeActions, language, { chunkSize: 2 });
           return rows;
@@ -1194,13 +1194,13 @@ export function buildInteractionQuestionCard(options: InteractionQuestionCardRen
   if (options.isOther) {
     rows.push([
       {
-        text: "其他",
+        text: "Other",
         callback_data: encodeInteractionTextCallback(options.interactionId, options.questionIndex - 1)
       }
     ]);
   }
 
-  rows.push([{ text: "取消本次交互", callback_data: encodeInteractionCancelCallback(options.interactionId) }]);
+  rows.push([{ text: "Cancel this interaction", callback_data: encodeInteractionCancelCallback(options.interactionId) }]);
   appendBridgeActionRows(rows, options.bridgeActions, language, { chunkSize: 2 });
   appendInteractionHubHint(lines, options.hubHint);
 
@@ -1216,19 +1216,19 @@ export function buildInteractionResolvedCard(options: InteractionResolvedCardRen
 } {
   const language: UiLanguage = "zh";
   const stateText = options.state === "answered"
-    ? "已处理"
+    ? "Processed"
     : options.state === "canceled"
-      ? "已取消"
-      : "处理失败";
+      ? "Cancelled"
+      : "Processing failed";
   const lines = [
     formatHtmlHeading(options.title),
-    formatHtmlField("状态：", stateText)
+    formatHtmlField("Status: ", stateText)
   ];
   if (options.summary) {
-    lines.push(formatHtmlField("结果：", options.summary));
+    lines.push(formatHtmlField("Result: ", options.summary));
   }
   if (options.expanded && options.details && options.details.length > 0) {
-    lines.push("", formatHtmlHeading("已提交回答"));
+    lines.push("", formatHtmlHeading("Submitted Answers"));
     for (const detail of options.details) {
       lines.push(escapeHtml(detail));
     }
@@ -1246,7 +1246,7 @@ export function buildInteractionResolvedCard(options: InteractionResolvedCardRen
   }
 
   const rows: TelegramInlineKeyboardMarkup["inline_keyboard"] = [[{
-    text: options.expanded ? "收起已提交回答" : "查看已提交回答",
+    text: options.expanded ? "Less Submitted Answers" : "View Submitted Answers",
     callback_data: options.expanded
       ? encodeInteractionAnswerCollapseCallback(options.interactionId)
       : encodeInteractionAnswerExpandCallback(options.interactionId)
@@ -1266,10 +1266,10 @@ export function buildInteractionExpiredCard(options: InteractionExpiredCardRende
 } {
   const lines = [
     formatHtmlHeading(options.title),
-    formatHtmlField("状态：", "已过期")
+    formatHtmlField("Status: ", "Expired")
   ];
   if (options.reason) {
-    lines.push(formatHtmlField("说明：", options.reason));
+    lines.push(formatHtmlField("Note: ", options.reason));
   }
   return { text: lines.join("\n") };
 }
@@ -1330,57 +1330,57 @@ export function buildInspectText(
     note?: string | null;
   }
 ): string {
-  const lines = [formatHtmlHeading("当前任务详情")];
+  const lines = [formatHtmlHeading("Current Task Inspect")];
 
   if (options?.sessionName) {
-    lines.push(formatHtmlField("会话：", options.sessionName));
+    lines.push(formatHtmlField("Sessions: ", options.sessionName));
   }
 
   if (options?.projectName && options.projectName !== options.sessionName) {
-    lines.push(formatHtmlField("项目：", options.projectName));
+    lines.push(formatHtmlField("Project: ", options.projectName));
   }
 
-  lines.push(formatHtmlField("状态：", formatInspectTurnStatus(snapshot.turnStatus)));
+  lines.push(formatHtmlField("Status: ", formatInspectTurnStatus(snapshot.turnStatus)));
 
   const blockedOn = formatInspectBlockedReason(snapshot.threadBlockedReason);
   if (blockedOn) {
-    lines.push(formatHtmlField("阻塞原因：", blockedOn));
+    lines.push(formatHtmlField("Blocked Reason: ", blockedOn));
   }
 
-  lines.push(formatHtmlField("当前动作：", describeInspectCurrentStep(snapshot)));
+  lines.push(formatHtmlField("Current Action: ", describeInspectCurrentStep(snapshot)));
 
   if (snapshot.currentItemDurationSec !== null) {
-    lines.push(formatHtmlField("已耗时：", formatDuration(snapshot.currentItemDurationSec)));
+    lines.push(formatHtmlField("Elapsed: ", formatDuration(snapshot.currentItemDurationSec)));
   }
 
   const conclusion = selectInspectConclusion(snapshot);
   if (conclusion) {
-    lines.push(formatHtmlField("最近结论：", conclusion));
+    lines.push(formatHtmlField("Latest Conclusion: ", conclusion));
   }
 
   if (snapshot.finalMessageAvailable) {
-    lines.push(formatHtmlField("最终答复：", "已就绪"));
+    lines.push(formatHtmlField("Final Response: ", "Ready"));
   }
 
   if (options?.note) {
-    lines.push(formatHtmlField("说明：", options.note));
+    lines.push(formatHtmlField("Note: ", options.note));
   }
 
   const timelineLines = formatInspectTimelineSection(snapshot.recentTransitions);
   if (timelineLines.length > 0) {
-    lines.push("", formatHtmlHeading("最近动作"));
+    lines.push("", formatHtmlHeading("Recent Actions"));
     lines.push(...timelineLines);
   }
 
   const commandLines = formatInspectCommandSection(options?.commands ?? [], snapshot.recentCommandSummaries);
   if (commandLines.length > 0) {
-    lines.push("", formatHtmlHeading("最近命令"));
+    lines.push("", formatHtmlHeading("Recent Commands"));
     lines.push(...commandLines);
   }
 
   const fileChangeLines = formatInspectSummarySection(snapshot.recentFileChangeSummaries);
   if (fileChangeLines.length > 0) {
-    lines.push("", formatHtmlHeading("最近文件变更"));
+    lines.push("", formatHtmlHeading("Recent File Changes"));
     lines.push(...fileChangeLines);
   }
 
@@ -1389,13 +1389,13 @@ export function buildInspectText(
     ...snapshot.recentWebSearches
   ]);
   if (toolLines.length > 0) {
-    lines.push("", formatHtmlHeading("最近工具与搜索"));
+    lines.push("", formatHtmlHeading("Recent Tools & Search"));
     lines.push(...toolLines);
   }
 
   const hookLines = formatInspectSummarySection(snapshot.recentHookSummaries);
   if (hookLines.length > 0) {
-    lines.push("", formatHtmlHeading("最近 Hook"));
+    lines.push("", formatHtmlHeading("Recent Hooks"));
     lines.push(...hookLines);
   }
 
@@ -1406,48 +1406,48 @@ export function buildInspectText(
     ].filter((value): value is string => Boolean(value))
   );
   if (noticeLines.length > 0) {
-    lines.push("", formatHtmlHeading("提示与告警"));
+    lines.push("", formatHtmlHeading("Tips & Warnings"));
     lines.push(...noticeLines);
   }
 
   const tokenUsageLines = formatTokenUsageSection(snapshot.tokenUsage);
   if (tokenUsageLines.length > 0) {
-    lines.push("", formatHtmlHeading("Token 用量"));
+    lines.push("", formatHtmlHeading("Token Usage"));
     lines.push(...tokenUsageLines);
   }
 
   if (snapshot.latestDiffSummary) {
-    lines.push("", formatHtmlHeading("最近差异"));
+    lines.push("", formatHtmlHeading("Recent Diff"));
     lines.push(formatHtmlListItem(snapshot.latestDiffSummary));
   }
 
   const planLines = formatInspectSummarySection(snapshot.planSnapshot);
   if (planLines.length > 0) {
-    lines.push("", formatHtmlHeading("计划清单"));
+    lines.push("", formatHtmlHeading("Plan"));
     lines.push(...planLines);
   }
 
   const proposedPlanLines = formatInspectSummarySection(snapshot.proposedPlanSnapshot);
   if (proposedPlanLines.length > 0) {
-    lines.push("", formatHtmlHeading("方案草稿"));
+    lines.push("", formatHtmlHeading("Plan Draft"));
     lines.push(...proposedPlanLines);
   }
 
   const commentaryLines = formatInspectSummarySection(snapshot.completedCommentary);
   if (commentaryLines.length > 0) {
-    lines.push("", formatHtmlHeading("补充说明"));
+    lines.push("", formatHtmlHeading("Additional Notes"));
     lines.push(...commentaryLines);
   }
 
   const pendingInteractionLines = formatPendingInteractionSection(snapshot.pendingInteractions);
   if (pendingInteractionLines.length > 0) {
-    lines.push("", formatHtmlHeading("待处理交互"));
+    lines.push("", formatHtmlHeading("Pending Interactions"));
     lines.push(...pendingInteractionLines);
   }
 
   const answeredInteractionLines = formatInspectSummarySection(snapshot.answeredInteractions);
   if (answeredInteractionLines.length > 0) {
-    lines.push("", formatHtmlHeading("最近已答交互"));
+    lines.push("", formatHtmlHeading("Recent Answered"));
     lines.push(...answeredInteractionLines);
   }
 
@@ -1457,24 +1457,24 @@ export function buildInspectText(
 export function summarizePendingInteractionState(state: PendingInteractionState): string {
   switch (state) {
     case "pending":
-      return "待处理";
+      return "Pending";
     case "awaiting_text":
-      return "等待文字回答";
+      return "Waiting for text answer";
     case "answered":
-      return "已处理";
+      return "Processed";
     case "canceled":
-      return "已取消";
+      return "Cancelled";
     case "expired":
-      return "已过期";
+      return "Expired";
     case "failed":
-      return "处理失败";
+      return "Processing failed";
     default:
       return state;
   }
 }
 
 function buildRuntimeStatusFieldGroupSummary(fields: readonly RuntimeStatusField[]): string {
-  return fields.map((field) => buildRuntimeStatusFieldLabel(field)).join("、");
+  return fields.map((field) => buildRuntimeStatusFieldLabel(field)).join(", ");
 }
 
 const SELECTABLE_CODEX_CLI_RUNTIME_STATUS_FIELDS: readonly RuntimeStatusField[] = [
@@ -1516,7 +1516,7 @@ function buildRuntimePreferencePages(): Array<{
 function buildCollapsedInspectText(html: string): string {
   const blocks = html.split("\n\n");
   const summary = blocks[0] ?? html;
-  return `${summary}\n${formatHtmlField("说明：", "详情已折叠，点击按钮展开。")}`;
+  return `${summary}\n${formatHtmlField("Note: ", "Inspect collapsed. Click a button to expand.")}`;
 }
 
 function paginateInspectHtml(html: string): string[] {
@@ -1659,7 +1659,7 @@ function isStandaloneInspectHeading(line: string): boolean {
 
 function pushHtmlRuntimeCardContext(lines: string[], context: RuntimeCardContext, language: UiLanguage = "zh"): void {
   if (context.sessionName) {
-    lines.push(formatRuntimeCardRow(language === "en" ? "Session" : "会话", context.sessionName));
+    lines.push(formatRuntimeCardRow(language === "en" ? "Session" : "Sessions", context.sessionName));
   }
 }
 
@@ -1700,24 +1700,24 @@ function formatRuntimeStatusOptionalLabel(label: string): string {
 function formatRuntimeStatusOptionalLabelZh(label: string): string {
   switch (label) {
     case "model-with-reasoning":
-      return "模型";
+      return "Model";
     case "plan_mode":
       return "Plan Mode";
     case "current-dir":
-      return "目录";
+      return "Directory";
     default:
       return formatRuntimeStatusOptionalLabel(label);
   }
 }
 
 function buildCollapsedPlanButtonLabel(_entries: string[], language: UiLanguage = "zh"): string {
-  return language === "en" ? "Plan" : "计划清单";
+  return language === "en" ? "Plan" : "Plan";
 }
 
 function buildCollapsedAgentButtonLabel(entries: CollabAgentStateSnapshot[], language: UiLanguage = "zh"): string {
   return language === "en"
     ? `Agents: ${entries.length} running`
-    : `Agent：${entries.length} 个运行中`;
+    : `Agents: ${entries.length} running`;
 }
 
 function renderAgentRuntimeLine(entry: CollabAgentStateSnapshot, index: number, progressLimit = 160): string {
@@ -1767,16 +1767,16 @@ function formatHubPlanStatus(
 ): string {
   switch (status) {
     case "inProgress":
-      return language === "en" ? "In Progress" : "进行中";
+      return language === "en" ? "In Progress" : "In Progress";
     case "completed":
-      return language === "en" ? "Completed" : "已完成";
+      return language === "en" ? "Completed" : "Done";
     case "pending":
     case "todo":
-      return language === "en" ? "Pending" : "待处理";
+      return language === "en" ? "Pending" : "Pending";
     case "failed":
-      return language === "en" ? "Failed" : "失败";
+      return language === "en" ? "Failed" : "Failed";
     case "blocked":
-      return language === "en" ? "Blocked" : "阻塞中";
+      return language === "en" ? "Blocked" : "BlockedMedium";
   }
 }
 
@@ -1787,7 +1787,7 @@ function renderHubAgentDetailLine(
 ): string {
   const progressText = entry.progress
     ? renderInlineMarkdown(truncateText(entry.progress, progressLimit))
-    : escapeHtml(language === "en" ? "Waiting for status update" : "等待状态更新");
+    : escapeHtml(language === "en" ? "Waiting for status update" : "Waiting for status update");
   return `${buildHubAgentStatusBadge(entry.status)} <b>${escapeHtml(entry.label)}</b> · ${escapeHtml(formatHubAgentStatus(entry.status, language))} · ${progressText}`;
 }
 
@@ -1810,17 +1810,17 @@ function buildHubAgentStatusBadge(status: CollabAgentStateSnapshot["status"]): s
 function formatHubAgentStatus(status: CollabAgentStateSnapshot["status"], language: UiLanguage): string {
   switch (status) {
     case "pendingInit":
-      return language === "en" ? "Pending init" : "等待初始化";
+      return language === "en" ? "Pending init" : "Pending Init";
     case "running":
-      return language === "en" ? "Running" : "运行中";
+      return language === "en" ? "Running" : "Running";
     case "completed":
-      return language === "en" ? "Completed" : "已完成";
+      return language === "en" ? "Completed" : "Done";
     case "errored":
-      return language === "en" ? "Errored" : "异常";
+      return language === "en" ? "Errored" : "Error";
     case "shutdown":
-      return language === "en" ? "Stopped" : "已停止";
+      return language === "en" ? "Stopped" : "Stopped";
     case "notFound":
-      return language === "en" ? "Not found" : "未找到";
+      return language === "en" ? "Not found" : "Not found";
     default:
       return status;
   }
@@ -1851,23 +1851,23 @@ function buildDetailedRuntimeCommandLines(
 ): string[] {
   const prefix = index === null ? "" : `${index}. `;
   const detailPrefix = index === null ? "" : "- ";
-  const lines = [`${prefix}${formatHtmlField("命令：", formatRuntimeCommandText(command.commandText))}`];
-  lines.push(`${detailPrefix}${formatHtmlField("状态：", formatInspectCommandState(command.state))}`);
+  const lines = [`${prefix}${formatHtmlField("Command: ", formatRuntimeCommandText(command.commandText))}`];
+  lines.push(`${detailPrefix}${formatHtmlField("Status: ", formatInspectCommandState(command.state))}`);
 
   if (command.latestSummary) {
-    lines.push(`${detailPrefix}${formatHtmlField("结果：", truncateText(command.latestSummary, 220))}`);
+    lines.push(`${detailPrefix}${formatHtmlField("Result: ", truncateText(command.latestSummary, 220))}`);
   }
 
   if (command.cwd) {
-    lines.push(`${detailPrefix}${formatHtmlField("目录：", truncateText(command.cwd, 220))}`);
+    lines.push(`${detailPrefix}${formatHtmlField("Slot ", truncateText(command.cwd, 220))}`);
   }
 
   if (typeof command.exitCode === "number") {
-    lines.push(`${detailPrefix}${formatHtmlField("退出码：", `${command.exitCode}`)}`);
+    lines.push(`${detailPrefix}${formatHtmlField("Exit Code: ", `${command.exitCode}`)}`);
   }
 
   if (typeof command.durationMs === "number") {
-    lines.push(`${detailPrefix}${formatHtmlField("耗时：", formatCommandDuration(command.durationMs))}`);
+    lines.push(`${detailPrefix}${formatHtmlField("Duration: ", formatCommandDuration(command.durationMs))}`);
   }
 
   return lines;
@@ -1883,7 +1883,7 @@ function formatInspectCommandSection(commands: RuntimeCommandEntryView[], fallba
 
 function formatPendingInteractionSection(snapshot: InspectSnapshot["pendingInteractions"]): string[] {
   return snapshot.map((interaction, index) => {
-    const suffix = interaction.awaitingText ? "，等待文字回答" : "";
+    const suffix = interaction.awaitingText ? ", Waiting for text answer" : "";
     return `${index + 1}. ${escapeHtml(interaction.interactionKind)} / ${escapeHtml(interaction.requestMethod)} / ${escapeHtml(summarizePendingInteractionState(interaction.state))}${suffix}`;
   });
 }
@@ -1894,11 +1894,11 @@ function formatTokenUsageSection(tokenUsage: InspectSnapshot["tokenUsage"]): str
   }
 
   const lines = [
-    formatHtmlListItem(`本次：${tokenUsage.lastTotalTokens}（输入 ${tokenUsage.lastInputTokens}，输出 ${tokenUsage.lastOutputTokens}，缓存 ${tokenUsage.lastCachedInputTokens}，推理 ${tokenUsage.lastReasoningOutputTokens}）`),
-    formatHtmlListItem(`累计：${tokenUsage.totalTokens}（输入 ${tokenUsage.totalInputTokens}，输出 ${tokenUsage.totalOutputTokens}，缓存 ${tokenUsage.totalCachedInputTokens}，推理 ${tokenUsage.totalReasoningOutputTokens}）`)
+    formatHtmlListItem(`This turn: ${tokenUsage.lastTotalTokens}(input ${tokenUsage.lastInputTokens}, output ${tokenUsage.lastOutputTokens}, cached ${tokenUsage.lastCachedInputTokens}, reasoning ${tokenUsage.lastReasoningOutputTokens})`),
+    formatHtmlListItem(`Total: ${tokenUsage.totalTokens}(input ${tokenUsage.totalInputTokens}, output ${tokenUsage.totalOutputTokens}, cached ${tokenUsage.totalCachedInputTokens}, reasoning ${tokenUsage.totalReasoningOutputTokens})`)
   ];
   if (tokenUsage.modelContextWindow !== null) {
-    lines.push(formatHtmlListItem(`上下文窗口：${tokenUsage.modelContextWindow}`));
+    lines.push(formatHtmlListItem(`Context Window: ${tokenUsage.modelContextWindow}`));
   }
 
   return lines;
@@ -1923,7 +1923,7 @@ function formatInspectTimelineSection(transitions: InspectSnapshot["recentTransi
   return transitions
     .slice(-5)
     .reverse()
-    .map((transition, index) => `${index + 1}. ${escapeHtml(`${formatRelativeTime(transition.at)}：${translateInspectSummary(transition.summary)}`)}`);
+    .map((transition, index) => `${index + 1}. ${escapeHtml(`${formatRelativeTime(transition.at)}: ${translateInspectSummary(transition.summary)}`)}`);
 }
 
 function formatRuntimeCardRow(
@@ -1948,45 +1948,45 @@ function formatHtmlListItem(value: string): string {
 function formatInspectTurnStatus(status: ActivityStatus["turnStatus"]): string {
   switch (status) {
     case "idle":
-      return "空闲";
+      return "Idle";
     case "starting":
-      return "准备中";
+      return "Preparing";
     case "running":
-      return "执行中";
+      return "Running";
     case "blocked":
-      return "等待中";
+      return "Waiting";
     case "interrupted":
-      return "已中断";
+      return "Stopped";
     case "completed":
-      return "已完成";
+      return "Done";
     case "failed":
-      return "失败";
+      return "Failed";
     default:
-      return "未知";
+      return "Unknown";
   }
 }
 
 function formatInspectCommandState(state: string): string {
   switch (state.toLowerCase()) {
     case "running":
-      return "进行中";
+      return "In Progress";
     case "completed":
-      return "已完成";
+      return "Done";
     case "failed":
-      return "失败";
+      return "Failed";
     case "interrupted":
-      return "已中断";
+      return "Stopped";
     default:
-      return "未知";
+      return "Unknown";
   }
 }
 
 function formatInspectBlockedReason(reason: ActivityStatus["threadBlockedReason"]): string | null {
   switch (reason) {
     case "waitingOnApproval":
-      return "等待批准";
+      return "Waiting for approval";
     case "waitingOnUserInput":
-      return "等待输入";
+      return "Awaiting Input";
     default:
       return null;
   }
@@ -1994,30 +1994,30 @@ function formatInspectBlockedReason(reason: ActivityStatus["threadBlockedReason"
 
 function describeInspectCurrentStep(status: ActivityStatus): string {
   if (status.threadBlockedReason === "waitingOnApproval") {
-    return "等待批准";
+    return "Waiting for approval";
   }
 
   if (status.threadBlockedReason === "waitingOnUserInput") {
-    return "等待输入";
+    return "Awaiting Input";
   }
 
   switch (status.activeItemType) {
     case "planning":
-      return "正在更新计划";
+      return "Updating plan";
     case "commandExecution":
-      return appendSpecificLabel("正在运行命令", status.activeItemLabel, ["command"], "：");
+      return appendSpecificLabel("Running command", status.activeItemLabel, ["command"], ": ");
     case "fileChange":
-      return appendSpecificLabel("正在修改文件", status.activeItemLabel, ["file changes"], "：");
+      return appendSpecificLabel("Modifying files", status.activeItemLabel, ["file changes"], ": ");
     case "mcpToolCall":
-      return appendSpecificLabel("正在调用 MCP 工具", status.activeItemLabel, ["MCP tool call"], "：");
+      return appendSpecificLabel("Calling MCP tool", status.activeItemLabel, ["MCP tool call"], ": ");
     case "webSearch":
-      return appendSpecificLabel("正在进行网页搜索", status.activeItemLabel, ["web search"], "：");
+      return appendSpecificLabel("Searching the web", status.activeItemLabel, ["web search"], ": ");
     case "agentMessage":
-      return appendSpecificLabel("正在整理回复", status.activeItemLabel, ["assistant response"], "：");
+      return appendSpecificLabel("Preparing response", status.activeItemLabel, ["assistant response"], ": ");
     case "reasoning":
-      return "正在思考";
+      return "Thinking";
     case "other":
-      return appendSpecificLabel("正在处理任务", status.activeItemLabel, ["work item", "other"], "：");
+      return appendSpecificLabel("Processing task", status.activeItemLabel, ["work item", "other"], ": ");
     default:
       return defaultInspectStepForStatus(status.turnStatus);
   }
@@ -2038,32 +2038,32 @@ function selectInspectConclusion(status: ActivityStatus): string | null {
 
 function translateInspectSummary(summary: string): string {
   if (summary === "turn started") {
-    return "开始执行";
+    return "Starting execution";
   }
 
   const completedMatch = summary.match(/^turn completed \((.+)\)$/u);
   if (completedMatch) {
-    return `执行结束（${formatInspectTurnStatus(mapCompletionWord(completedMatch[1] ?? "unknown"))}）`;
+    return `Execution finished (${formatInspectTurnStatus(mapCompletionWord(completedMatch[1] ?? "unknown"))})`;
   }
 
   const blockedMatch = summary.match(/^thread blocked \((.+)\)$/u);
   if (blockedMatch) {
-    return `线程阻塞（${translateBlockedToken(blockedMatch[1] ?? "")}）`;
+    return `Thread blocked (${translateBlockedToken(blockedMatch[1] ?? "")})`;
   }
 
   const statusMatch = summary.match(/^thread status (.+)$/u);
   if (statusMatch) {
-    return `线程状态：${translateThreadStatusToken(statusMatch[1] ?? "")}`;
+    return `ThreadStatus: ${translateThreadStatusToken(statusMatch[1] ?? "")}`;
   }
 
   const startedMatch = summary.match(/^(.+) started$/u);
   if (startedMatch) {
-    return `开始：${startedMatch[1] ?? ""}`;
+    return `Started: ${startedMatch[1] ?? ""}`;
   }
 
   const itemCompletedMatch = summary.match(/^(.+) completed$/u);
   if (itemCompletedMatch) {
-    return `完成：${itemCompletedMatch[1] ?? ""}`;
+    return `Completed: ${itemCompletedMatch[1] ?? ""}`;
   }
 
   return summary;
@@ -2164,21 +2164,21 @@ function defaultStepForStatus(status: ActivityStatus["turnStatus"]): string {
 function defaultInspectStepForStatus(status: ActivityStatus["turnStatus"]): string {
   switch (status) {
     case "starting":
-      return "等待第一条活动";
+      return "Awaiting first activity";
     case "running":
-      return "正在处理中";
+      return "Processing";
     case "blocked":
-      return "等待继续";
+      return "Awaiting continuation";
     case "completed":
-      return "当前没有进行中的步骤";
+      return "No steps in progress";
     case "interrupted":
-      return "已中断，没有进行中的步骤";
+      return "Stopped, no steps in progress";
     case "failed":
-      return "执行失败，没有进行中的步骤";
+      return "Execution failed, no steps in progress";
     case "idle":
-      return "当前没有进行中的步骤";
+      return "No steps in progress";
     default:
-      return "等待活动";
+      return "Awaiting activity";
   }
 }
 
@@ -2213,17 +2213,17 @@ function formatInspectMilestone(status: ActivityStatus): string | null {
     case "ran_cmd": {
       const command = stripPrefix(title, "Ran cmd: ");
       return status.lastHighValueDetail
-        ? `命令结果：${command} -> ${status.lastHighValueDetail}`
-        : `开始运行命令：${command}`;
+        ? `CommandResult: ${command} -> ${status.lastHighValueDetail}`
+        : `Running command: ${command}`;
     }
     case "changed":
-      return `文件变更：${status.lastHighValueDetail ?? stripPrefix(title, "Changed: ")}`;
+      return `File changes: ${status.lastHighValueDetail ?? stripPrefix(title, "Changed: ")}`;
     case "found":
-      return `发现：${status.lastHighValueDetail ?? stripPrefix(title, "Found: ")}`;
+      return `Found: ${status.lastHighValueDetail ?? stripPrefix(title, "Found: ")}`;
     case "blocked":
-      return `阻塞：${status.lastHighValueDetail ?? stripPrefix(title, "Blocked: ")}`;
+      return `Blocked: ${status.lastHighValueDetail ?? stripPrefix(title, "Blocked: ")}`;
     case "done":
-      return status.lastHighValueDetail ? "最终答复已生成" : `执行结束：${stripPrefix(title, "Done: ")}`;
+      return status.lastHighValueDetail ? "Final response generated" : `Execution finished: ${stripPrefix(title, "Done: ")}`;
     default:
       return null;
   }
@@ -2313,9 +2313,9 @@ function mapCompletionWord(status: string): ActivityStatus["turnStatus"] {
 function translateBlockedToken(token: string): string {
   switch (token) {
     case "waitingOnApproval":
-      return "等待批准";
+      return "Waiting for approval";
     case "waitingOnUserInput":
-      return "等待输入";
+      return "Awaiting Input";
     default:
       return token;
   }
@@ -2324,13 +2324,13 @@ function translateBlockedToken(token: string): string {
 function translateThreadStatusToken(token: string): string {
   switch (token) {
     case "notLoaded":
-      return "未加载";
+      return "Not loaded";
     case "idle":
-      return "空闲";
+      return "Idle";
     case "active":
-      return "活跃";
+      return "Active";
     case "systemError":
-      return "系统错误";
+      return "System error";
     default:
       return token;
   }

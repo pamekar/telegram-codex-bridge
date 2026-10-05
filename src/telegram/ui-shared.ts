@@ -24,43 +24,43 @@ export function formatRelativeTime(isoTime: string): string {
   const diffMs = Math.max(0, Date.now() - Date.parse(isoTime));
   const minutes = Math.floor(diffMs / 60_000);
   if (minutes < 1) {
-    return "刚刚";
+    return "just now";
   }
 
   if (minutes < 60) {
-    return `${minutes}分钟前`;
+    return `${minutes}m ago`;
   }
 
   const hours = Math.floor(minutes / 60);
   if (hours < 24) {
-    return `${hours}小时前`;
+    return `${hours}h ago`;
   }
 
   const days = Math.floor(hours / 24);
-  return `${days}天前`;
+  return `${days}d ago`;
 }
 
 export function formatReasoningEffortLabel(effort: ReasoningEffort): string {
   switch (effort) {
     case "none":
-      return "关闭";
+      return "Close";
     case "minimal":
-      return "极省";
+      return "Minimal";
     case "low":
-      return "低";
+      return "Low";
     case "medium":
-      return "中";
+      return "Medium";
     case "high":
-      return "高";
+      return "High";
     case "xhigh":
-      return "极高";
+      return "Very high";
   }
 }
 
 export function formatSessionModelReasoningConfig(
   session: Pick<SessionRow, "selectedModel" | "selectedReasoningEffort">
 ): string {
-  const modelLabel = session.selectedModel ?? "默认模型";
-  const effortLabel = session.selectedReasoningEffort ? formatReasoningEffortLabel(session.selectedReasoningEffort) : "默认";
+  const modelLabel = session.selectedModel ?? "DefaultModel";
+  const effortLabel = session.selectedReasoningEffort ? formatReasoningEffortLabel(session.selectedReasoningEffort) : "Default";
   return `${modelLabel} + ${effortLabel}`;
 }

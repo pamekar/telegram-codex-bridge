@@ -25,14 +25,14 @@ export function createDeferredTerminalNoticeView(
   if (saved.kind === "plan_result") {
     return {
       kind: "plan_result",
-      html: "<i>方案结果暂未送达。点击“展开方案”重新渲染。</i>",
+      html: "<i>Plan result not yet delivered. Click \u201cExpand Plan\u201d to re-render.</i>",
       controls: createTerminalResultControls(saved)
     };
   }
 
   return {
     kind: "final_answer",
-    html: "<i>最终答复暂未送达。点击“展开全文”重新渲染。</i>",
+    html: "<i>Final answer not yet delivered. Click \u201cExpand\u201d to re-render.</i>",
     controls: createTerminalResultControls(saved)
   };
 }

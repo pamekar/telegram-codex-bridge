@@ -104,7 +104,7 @@ export function buildCollapsibleFinalAnswerView(
       parts.push(headerHtml);
     }
     if (rawPages.length > 1) {
-      parts.push(`<i>第 ${index + 1}/${rawPages.length} 页</i>`);
+      parts.push(`<i>Page ${index + 1}/${rawPages.length}</i>`);
     }
     if (page) {
       parts.push(page);
@@ -122,8 +122,8 @@ export function buildCollapsibleFinalAnswerView(
   }
 
   const note = rawPages.length > 1
-    ? `已折叠，共 ${rawPages.length} 页，点击“展开全文”查看。`
-    : "已折叠，点击“展开全文”查看剩余内容。";
+    ? `Collapsed. ${rawPages.length} pages total. Click “Expand” to view.`
+    : "Collapsed. Click “Expand” to view remaining content.";
 
   return {
     previewHtml: [
@@ -146,7 +146,7 @@ export function buildFinalAnswerReplyMarkup(
       inline_keyboard: [
         ...(options.extraRows ?? []),
         [{
-          text: "展开全文",
+          text: "Expand",
           callback_data: encodeFinalAnswerOpenCallback(options.answerId)
         }]
       ]
@@ -156,20 +156,20 @@ export function buildFinalAnswerReplyMarkup(
   const buttons: Array<{ text: string; callback_data: string }> = [];
   if (options.totalPages > 1 && options.currentPage && options.currentPage > 1) {
     buttons.push({
-      text: "上一页",
+      text: "Previous",
       callback_data: encodeFinalAnswerPageCallback(options.answerId, options.currentPage - 1)
     });
   }
 
   if (options.totalPages > 1 && options.currentPage && options.currentPage < options.totalPages) {
     buttons.push({
-      text: "下一页",
+      text: "Next",
       callback_data: encodeFinalAnswerPageCallback(options.answerId, options.currentPage + 1)
     });
   }
 
   buttons.push({
-    text: "收起",
+    text: "Collapse",
     callback_data: encodeFinalAnswerCloseCallback(options.answerId)
   });
 
@@ -183,7 +183,7 @@ export function buildFinalAnswerReplyMarkup(
 
 export function buildPlanResultActionRows(answerId: string): Array<Array<{ text: string; callback_data: string }>> {
   return [[
-    { text: "实施这个计划", callback_data: encodePlanImplementCallback(answerId) }
+    { text: "Implement Plan", callback_data: encodePlanImplementCallback(answerId) }
   ]];
 }
 
@@ -194,11 +194,11 @@ export function buildRecentOutputEntryHtml(options: RecentOutputEntryView): stri
   });
 
   return [
-    "<b>最近输出</b>",
+    "<b>Recent Output</b>",
     identity,
     options.hasResult
-      ? "<i>点击“展开最近输出”查看该会话最近一次输出。</i>"
-      : "<i>该会话还没有最近输出。</i>"
+      ? "<i>Click \u201cExpand\u201d to view the most recent output from this session.</i>"
+      : "No recent output for this session."
   ].filter((part) => part.length > 0).join("\n\n");
 }
 
@@ -212,7 +212,7 @@ export function buildRecentOutputReplyMarkup(
       inline_keyboard: [
         ...(options.extraRows ?? []),
         [{
-          text: "展开最近输出",
+          text: "Expand",
           callback_data: encodeRecentOutputOpenCallback(options.answerId)
         }]
       ]
@@ -222,18 +222,18 @@ export function buildRecentOutputReplyMarkup(
   const buttons: Array<{ text: string; callback_data: string }> = [];
   if (options.totalPages > 1 && options.currentPage && options.currentPage > 1) {
     buttons.push({
-      text: "上一页",
+      text: "Previous",
       callback_data: encodeRecentOutputPageCallback(options.answerId, options.currentPage - 1)
     });
   }
   if (options.totalPages > 1 && options.currentPage && options.currentPage < options.totalPages) {
     buttons.push({
-      text: "下一页",
+      text: "Next",
       callback_data: encodeRecentOutputPageCallback(options.answerId, options.currentPage + 1)
     });
   }
   buttons.push({
-    text: "收起最近输出",
+    text: "Collapse",
     callback_data: encodeRecentOutputCloseCallback(options.answerId)
   });
 
@@ -252,7 +252,7 @@ export function buildPlanResultReplyMarkup(options: TerminalResultControlView): 
       inline_keyboard: [
         ...actionRows,
         [{
-          text: "展开方案",
+          text: "Expand Plan",
           callback_data: encodePlanResultOpenCallback(options.answerId)
         }]
       ]
@@ -262,18 +262,18 @@ export function buildPlanResultReplyMarkup(options: TerminalResultControlView): 
   const buttons: Array<{ text: string; callback_data: string }> = [];
   if (options.totalPages > 1 && options.currentPage && options.currentPage > 1) {
     buttons.push({
-      text: "上一页",
+      text: "Previous",
       callback_data: encodePlanResultPageCallback(options.answerId, options.currentPage - 1)
     });
   }
   if (options.totalPages > 1 && options.currentPage && options.currentPage < options.totalPages) {
     buttons.push({
-      text: "下一页",
+      text: "Next",
       callback_data: encodePlanResultPageCallback(options.answerId, options.currentPage + 1)
     });
   }
   buttons.push({
-    text: "收起方案",
+    text: "Collapse Plan",
     callback_data: encodePlanResultCloseCallback(options.answerId)
   });
 
@@ -286,7 +286,7 @@ export function buildPlanResultReplyMarkup(options: TerminalResultControlView): 
 }
 
 export function buildPlanResultConsumedNotice(): string {
-  return "<i>已开始实施。</i>";
+  return "<i>Implementation started.</i>";
 }
 
 export function renderStreamBlock(block: StreamBlock): string {

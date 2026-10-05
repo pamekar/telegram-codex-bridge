@@ -390,7 +390,7 @@ export class ActivityTracker {
 
       case "server_request_resolved":
         if (notification.requestId !== null) {
-          const summary = `交互已完成：${notification.requestId}`;
+          const summary = `Interaction resolved: ${notification.requestId}`;
           this.markActivity(receivedAt);
           this.pushUniqueSummary(this.recentNoticeSummaries, summary);
           this.pushTransition(receivedAt, "progress", summary);
@@ -399,7 +399,7 @@ export class ActivityTracker {
 
       case "config_warning":
       case "deprecation_notice": {
-        const prefix = notification.kind === "config_warning" ? "配置警告" : "弃用提示";
+        const prefix = notification.kind === "config_warning" ? "Config warning" : "Deprecation notice";
         const summary = summarizeNotice(notification.summary, notification.detail, prefix);
         if (summary) {
           this.markActivity(receivedAt);
@@ -422,7 +422,7 @@ export class ActivityTracker {
 
       case "skills_changed":
         this.markActivity(receivedAt);
-        this.pushUniqueSummary(this.recentNoticeSummaries, "技能列表已刷新");
+        this.pushUniqueSummary(this.recentNoticeSummaries, "Skills list refreshed");
         this.pushTransition(receivedAt, "progress", "skills changed");
         return;
 
@@ -638,7 +638,7 @@ export class ActivityTracker {
     }
 
     this.markActivity(receivedAt);
-    this.pushUniqueSummary(this.recentNoticeSummaries, "上下文已压缩");
+    this.pushUniqueSummary(this.recentNoticeSummaries, "Context compacted");
     this.pushTransition(
       receivedAt,
       "thread",
@@ -1256,11 +1256,11 @@ function summarizeUnifiedDiff(diff: string | null): string | null {
     }
   }
   const summaryParts = [
-    fileCount > 0 ? `${fileCount} 个文件` : null,
+    fileCount > 0 ? `${fileCount}  files` : null,
     additions > 0 ? `+${additions}` : null,
     deletions > 0 ? `-${deletions}` : null
   ].filter((value): value is string => Boolean(value));
-  return summaryParts.length > 0 ? `差异更新：${summaryParts.join(" / ")}` : "差异已更新";
+  return summaryParts.length > 0 ? `Diff updated: ${summaryParts.join(" / ")}` : "Diff updated";
 }
 
 function summarizeHookRun(
@@ -1299,8 +1299,8 @@ function summarizeHookEntry(kind: string | null, text: string | null): string | 
 function summarizeTerminalInteraction(stdin: string | null): string {
   const preview = cleanSummary(stdin ?? "");
   return preview
-    ? `终端输入请求未转发到当前控制面：${preview}`
-    : "终端输入请求未转发到当前控制面";
+    ? `Terminal input request not forwarded to the control surface: ${preview}`
+    : "Terminal input request not forwarded to the control surface";
 }
 
 function summarizeNotice(summary: string | null, detail: string | null, prefix: string): string | null {
@@ -1323,7 +1323,7 @@ function summarizeModelReroute(
   }
 
   const suffix = reason ? `（${reason}）` : "";
-  return `模型已改道：${fromModel} -> ${toModel}${suffix}`;
+  return `Model rerouted: ${fromModel} -> ${toModel}${suffix}`;
 }
 
 function mapCompletionStatus(status: string): TurnStatus {

@@ -470,7 +470,7 @@ export class BridgeStateStore {
           key: `restart:${session.sessionId}:${timestamp}`,
           chatId: session.chatId,
           type: "bridge_restart_recovery",
-          message: "桥接服务已重启，正在运行的操作状态未知，请查看会话状态后重新发起。",
+          message: "Bridge service restarted. Running operation status unknown. Check session status and retry.",
           createdAt: timestamp
         };
 

@@ -46,21 +46,21 @@ function displayProjectName(projectName: string, projectAlias: string | null | u
 function buildSessionProjectContextBlock(title: string, sessionName: string, projectName: string): string {
   return [
     formatHtmlHeading(title),
-    formatHtmlField("会话名：", sessionName),
-    formatHtmlField("项目：", projectName)
+    formatHtmlField("Session: ", sessionName),
+    formatHtmlField("Project: ", projectName)
   ].join("\n");
 }
 
 function buildProjectBadgeLabels(candidate: ProjectCandidate): string[] {
   const labels: string[] = [];
   if (candidate.group !== "recent" && candidate.isRecent) {
-    labels.push("最近");
+    labels.push("Recent");
   }
   if (candidate.group !== "discovered" && candidate.fromScan) {
-    labels.push("本地发现");
+    labels.push("Found locally");
   }
   if (candidate.hasExistingSession) {
-    labels.push("有历史会话");
+    labels.push("Has history");
   }
 
   return labels;
@@ -79,8 +79,8 @@ export function buildProjectPickerMessage(picker: ProjectPickerResult): {
 
   rows.push(...chunkButtons(candidateButtons, 5));
   rows.push([
-    { text: "浏览目录", callback_data: encodeNewBrowseOpenCallback() },
-    { text: "手动输入路径", callback_data: encodePathManualCallback() }
+    { text: "Browse", callback_data: encodeNewBrowseOpenCallback() },
+    { text: "Enter PathPath", callback_data: encodePathManualCallback() }
   ]);
 
   const lines = [picker.title];
@@ -121,9 +121,9 @@ export function buildProjectBrowseRootPickerMessage(options: {
     text: `${root.index + 1}`,
     callback_data: encodeNewBrowseRootCallback(root.index)
   }]);
-  rows.push([{ text: "返回项目列表", callback_data: encodeNewBrowseBackCallback() }]);
+  rows.push([{ text: "Back to projects", callback_data: encodeNewBrowseBackCallback() }]);
 
-  const lines = ["选择要浏览的根目录"];
+  const lines = ["Select root directory to browse"];
   for (const root of options.roots) {
     lines.push("");
     lines.push(`${root.index + 1}. ${root.label}`);
@@ -141,9 +141,9 @@ export function buildManualPathPrompt(): {
   replyMarkup: TelegramInlineKeyboardMarkup;
 } {
   return {
-    text: "请发送要开始会话的目录路径，例如：/home/ubuntu/Repo/openclaw\n发送 /cancel 返回项目列表。",
+    text: "Please send the directory path to start the session, e.g.: /home/ubuntu/Repo/openclaw\nSend /cancel to go back to projects.",
     replyMarkup: {
-      inline_keyboard: [[{ text: "返回项目列表", callback_data: encodePathBackCallback() }]]
+      inline_keyboard: [[{ text: "Back to projects", callback_data: encodePathBackCallback() }]]
     }
   };
 }
@@ -154,14 +154,14 @@ export function buildManualPathConfirmMessage(candidate: ProjectCandidate): {
 } {
   return {
     text: [
-      "要在这个目录中新建会话吗？",
-      formatHtmlField("项目：", candidate.displayName),
-      formatHtmlField("路径：", candidate.projectPath)
+      "Create a new session in this directory?",
+      formatHtmlField("Project: ", candidate.displayName),
+      formatHtmlField("Path: ", candidate.projectPath)
     ].join("\n"),
     replyMarkup: {
       inline_keyboard: [
-        [{ text: "确认新建会话", callback_data: encodePathConfirmCallback(candidate.projectKey) }],
-        [{ text: "返回项目列表", callback_data: encodePathBackCallback() }]
+        [{ text: "Confirm new session", callback_data: encodePathConfirmCallback(candidate.projectKey) }],
+        [{ text: "Back to projects", callback_data: encodePathBackCallback() }]
       ]
     }
   };
@@ -172,12 +172,12 @@ export function buildNoNewProjectsMessage(): {
   replyMarkup: TelegramInlineKeyboardMarkup;
 } {
   return {
-    text: "这个入口已下线。请使用浏览目录或手动输入路径。",
+    text: "This entry is offline. Use Browse or enter a path.",
     replyMarkup: {
       inline_keyboard: [
-        [{ text: "浏览目录", callback_data: encodeNewBrowseOpenCallback() }],
-        [{ text: "手动输入路径", callback_data: encodePathManualCallback() }],
-        [{ text: "返回项目列表", callback_data: encodePathBackCallback() }]
+        [{ text: "Browse", callback_data: encodeNewBrowseOpenCallback() }],
+        [{ text: "Enter PathPath", callback_data: encodePathManualCallback() }],
+        [{ text: "Back to projects", callback_data: encodePathBackCallback() }]
       ]
     }
   };
@@ -225,23 +225,23 @@ export function buildModelPickerMessage(options: {
   ];
   const navigation: Array<{ text: string; callback_data: string }> = [];
   if (safePage > 0) {
-    navigation.push({ text: "上一页", callback_data: encodeModelPageCallback(options.session.sessionId, safePage - 1) });
+    navigation.push({ text: "Previous", callback_data: encodeModelPageCallback(options.session.sessionId, safePage - 1) });
   }
   if (safePage + 1 < totalPages) {
-    navigation.push({ text: "下一页", callback_data: encodeModelPageCallback(options.session.sessionId, safePage + 1) });
+    navigation.push({ text: "Next", callback_data: encodeModelPageCallback(options.session.sessionId, safePage + 1) });
   }
   if (navigation.length > 0) {
     rows.push(navigation);
   }
-  rows.push([{ text: "关闭", callback_data: encodeModelCloseCallback(options.session.sessionId) }]);
+  rows.push([{ text: "Close", callback_data: encodeModelCloseCallback(options.session.sessionId) }]);
 
   return {
     text: [
-      "选择模型",
-      `当前配置：${formatModelReasoning(state.configuredModel, state.configuredReasoningEffort)}`,
-      `当前生效：${formatModelReasoning(state.effectiveModel, state.effectiveReasoningEffort)}`,
-      `第 ${safePage + 1}/${totalPages} 页`,
-      "先选模型，再按该模型支持情况选择思考强度。"
+      "Model Selector",
+      `Configured: ${formatModelReasoning(state.configuredModel, state.configuredReasoningEffort)}`,
+      `Effective: ${formatModelReasoning(state.effectiveModel, state.effectiveReasoningEffort)}`,
+      `Page ${safePage + 1}/${totalPages}`,
+      "Select a model, then choose reasoning effort based on its supported levels."
     ].join("\n"),
     replyMarkup: { inline_keyboard: rows }
   };
@@ -272,16 +272,16 @@ export function buildReasoningEffortPickerMessage(options: {
       callback_data: encodeModelEffortCallback(options.session.sessionId, options.modelIndex, null)
     }],
     ...chunkButtons(effortButtons, 2),
-    [{ text: "关闭", callback_data: encodeModelCloseCallback(options.session.sessionId) }]
+    [{ text: "Close", callback_data: encodeModelCloseCallback(options.session.sessionId) }]
   ];
 
   return {
     text: [
-      "选择思考强度",
-      `模型：${options.model.id}`,
-      `当前配置：${formatModelReasoning(state.configuredModel, state.configuredReasoningEffort)}`,
-      `当前生效：${formatModelReasoning(state.effectiveModel, state.effectiveReasoningEffort)}`,
-      "仅展示这个模型实际支持的档位。"
+      "Select reasoning effort",
+      `Model: ${options.model.id}`,
+      `Configured: ${formatModelReasoning(state.configuredModel, state.configuredReasoningEffort)}`,
+      `Effective: ${formatModelReasoning(state.effectiveModel, state.effectiveReasoningEffort)}`,
+      "Showing only effort levels supported by this model."
     ].join("\n"),
     replyMarkup: { inline_keyboard: rows }
   };
@@ -293,18 +293,18 @@ export function buildStatusText(
   runtimeStatusText?: string | null,
   modelState?: SessionModelDisplayState | null
 ): string {
-  const issueText = snapshot.details.issues.length === 0 ? "无" : snapshot.details.issues.join("；");
+  const issueText = snapshot.details.issues.length === 0 ? "None" : snapshot.details.issues.join("；");
   const resolvedModelState = activeSession ? resolveModelDisplayState(activeSession, modelState ?? undefined) : null;
   const activeSessionText = activeSession
     ? [
         displayProjectName(activeSession.projectName, activeSession.projectAlias),
         activeSession.displayName,
         formatSessionState(activeSession),
-        `配置 ${formatModelReasoning(
+        `Configured ${formatModelReasoning(
           resolvedModelState?.configuredModel ?? null,
           resolvedModelState?.configuredReasoningEffort ?? null
         )}`,
-        `生效 ${formatModelReasoning(
+        `Effective ${formatModelReasoning(
           resolvedModelState?.effectiveModel ?? null,
           resolvedModelState?.effectiveReasoningEffort ?? null
         )}`,
@@ -312,20 +312,20 @@ export function buildStatusText(
       ]
         .filter((value): value is string => Boolean(value))
         .join(" / ")
-    : "无";
+    : "None";
 
   const lines = [
-    formatHtmlHeading("服务状态"),
-    formatHtmlField("桥接状态：", snapshot.state),
-    formatHtmlField("平台连通：", snapshot.details.packState === "pack_unhealthy" ? "异常" : "正常"),
-    formatHtmlField("配置完成：", snapshot.details.setupState === "incomplete" ? "否" : "是"),
+    formatHtmlHeading("Service Status"),
+    formatHtmlField("Bridge: ", snapshot.state),
+    formatHtmlField("Platform: ", snapshot.details.packState === "pack_unhealthy" ? "Error" : "OK"),
+    formatHtmlField("Configured: ", snapshot.details.setupState === "incomplete" ? "No" : "Yes"),
     formatHtmlField(
-      "Codex 可用：",
-      snapshot.details.codexAuthenticated && snapshot.details.appServerAvailable ? "正常" : "异常"
+      "Codex: ",
+      snapshot.details.codexAuthenticated && snapshot.details.appServerAvailable ? "OK" : "Error"
     ),
-    formatHtmlField("当前会话：", activeSessionText),
-    formatHtmlField("最近检查：", snapshot.checkedAt),
-    formatHtmlField("问题：", issueText)
+    formatHtmlField("Session: ", activeSessionText),
+    formatHtmlField("Last Check: ", snapshot.checkedAt),
+    formatHtmlField("Issues: ", issueText)
   ];
 
   if (runtimeStatusText) {
@@ -337,27 +337,27 @@ export function buildStatusText(
 
 export function buildWhereText(session: SessionRow | null, modelState?: SessionModelDisplayState): string {
   if (!session) {
-    return "当前没有活动会话。";
+    return "No active sessions.";
   }
 
   const state = resolveModelDisplayState(session, modelState);
   const lines = [
-    formatHtmlHeading("当前会话"),
-    formatHtmlField("会话名：", session.displayName),
-    formatHtmlField("项目：", displayProjectName(session.projectName, session.projectAlias)),
-    formatHtmlField("路径：", session.projectPath),
-    formatHtmlField("状态：", formatSessionState(session)),
-    formatHtmlField("模型配置：", formatModelReasoning(state.configuredModel, state.configuredReasoningEffort)),
-    formatHtmlField("模型生效：", formatModelReasoning(state.effectiveModel, state.effectiveReasoningEffort)),
+    formatHtmlHeading("Current Session"),
+    formatHtmlField("Session: ", session.displayName),
+    formatHtmlField("Project: ", displayProjectName(session.projectName, session.projectAlias)),
+    formatHtmlField("Path: ", session.projectPath),
+    formatHtmlField("Status: ", formatSessionState(session)),
+    formatHtmlField("Model Config: ", formatModelReasoning(state.configuredModel, state.configuredReasoningEffort)),
+    formatHtmlField("Model Effective: ", formatModelReasoning(state.effectiveModel, state.effectiveReasoningEffort)),
     formatHtmlField("plan mode:", session.planMode ? "on" : "off")
   ];
 
-  lines.push(formatHtmlField("Bridge 会话 ID：", session.sessionId));
-  lines.push(formatHtmlField("Codex 线程 ID：", session.threadId ?? "尚未创建（首次发送任务后生成）"));
-  lines.push(formatHtmlField("最近 Turn ID：", session.lastTurnId ?? "暂无"));
+  lines.push(formatHtmlField("Bridge Sessions ID：", session.sessionId));
+  lines.push(formatHtmlField("Codex Thread ID: ", session.threadId ?? "Not yet created (Generated after first task）"));
+  lines.push(formatHtmlField("Last Turn ID: ", session.lastTurnId ?? "None"));
   const lastTurnSummary = formatLastTurnSummary(session);
   if (lastTurnSummary) {
-    lines.push(formatHtmlField("上次结果：", lastTurnSummary));
+    lines.push(formatHtmlField("Last Result: ", lastTurnSummary));
   }
 
   return lines.join("\n");
@@ -381,14 +381,14 @@ export function buildSessionsText(options: {
   activeSessionId: string | null;
   archived?: boolean;
 }): string {
-  const title = options.archived ? "已归档会话" : "最近会话";
+  const title = options.archived ? "Archived Sessions" : "Recent Sessions";
   if (options.sessions.length === 0) {
-    return `${title}\n暂无会话。`;
+    return `${title}\nNo sessions yet.`;
   }
 
   const lines = [title];
   options.sessions.forEach((session, index) => {
-    const marker = !options.archived && session.sessionId === options.activeSessionId ? "[当前] " : "";
+    const marker = !options.archived && session.sessionId === options.activeSessionId ? "[Current] " : "";
     const parts = [
       `${marker}${session.displayName}`,
       displayProjectName(session.projectName, session.projectAlias),
@@ -404,23 +404,23 @@ export function buildSessionsText(options: {
 }
 
 export function buildProjectSelectedText(projectName: string): string {
-  return formatHtmlField("当前项目：", projectName);
+  return formatHtmlField("Current project：", projectName);
 }
 
 export function buildSessionCreatedText(sessionName: string, projectPath: string): string {
   return [
-    formatHtmlHeading("已新建会话"),
-    formatHtmlField("会话名：", sessionName),
-    formatHtmlField("路径：", projectPath)
+    formatHtmlHeading("Session Created"),
+    formatHtmlField("Session: ", sessionName),
+    formatHtmlField("Path: ", projectPath)
   ].join("\n");
 }
 
 export function buildSessionSwitchedText(sessionName: string, projectName: string): string {
-  return buildSessionProjectContextBlock("已切换会话", sessionName, projectName);
+  return buildSessionProjectContextBlock("Switched to session", sessionName, projectName);
 }
 
 export function buildSessionResumedText(sessionName: string, projectName: string): string {
-  return buildSessionProjectContextBlock("已恢复 Codex 会话", sessionName, projectName);
+  return buildSessionProjectContextBlock("Resumed Codex session", sessionName, projectName);
 }
 
 export function buildResumeThreadListText(threads: Array<{
@@ -438,10 +438,10 @@ export function buildResumeThreadListText(threads: Array<{
   const pageSize = Math.max(1, Math.trunc(options.pageSize ?? 10));
   const includeAll = options.includeAll ?? false;
   if (threads.length === 0) {
-    return escapeHtml(`可恢复的 Codex 会话（第 ${page} 页）\n暂无会话。${page > 1 ? `\n上一页：/resume ${includeAll ? "all " : ""}page ${page - 1}` : ""}`);
+    return escapeHtml(`Resumable Codex sessions (page ${page})\nNo sessions yet.${page > 1 ? `\nPrevious: /resume ${includeAll ? "all " : ""}page ${page - 1}` : ""}`);
   }
 
-  const lines = [`可恢复的 Codex 会话（第 ${page} 页）`, `发送 /resume ${includeAll ? "all " : ""}<序号> 恢复。`];
+  const lines = [`Resumable Codex sessions (page ${page})`, `Send /resume ${includeAll ? "all " : ""}<number> to resume.`];
   threads.forEach((thread, index) => {
     const ordinal = (page - 1) * pageSize + index + 1;
     const projectName = basename(thread.cwd);
@@ -451,10 +451,10 @@ export function buildResumeThreadListText(threads: Array<{
     lines.push(`${ordinal}. ${title} | ${projectName}${preview}${updatedAt ? ` | ${updatedAt}` : ""}`);
   });
   if (page > 1) {
-    lines.push(`上一页：/resume ${includeAll ? "all " : ""}page ${page - 1}`);
+    lines.push(`Previous: /resume ${includeAll ? "all " : ""}page ${page - 1}`);
   }
   if (options.hasNext) {
-    lines.push(`下一页：/resume ${includeAll ? "all " : ""}page ${page + 1}`);
+    lines.push(`Next: /resume ${includeAll ? "all " : ""}page ${page + 1}`);
   }
 
   return escapeHtml(lines.join("\n"));
@@ -486,15 +486,15 @@ export function buildResumeThreadListMessage(threads: Array<{
 
   const navigation: Array<{ text: string; callback_data: string }> = [];
   if (page > 1) {
-    navigation.push({ text: "上一页", callback_data: encodeResumePageCallback(includeAll, page - 1) });
+    navigation.push({ text: "Previous", callback_data: encodeResumePageCallback(includeAll, page - 1) });
   }
   if (options.hasNext) {
-    navigation.push({ text: "下一页", callback_data: encodeResumePageCallback(includeAll, page + 1) });
+    navigation.push({ text: "Next", callback_data: encodeResumePageCallback(includeAll, page + 1) });
   }
   if (navigation.length > 0) {
     rows.push(navigation);
   }
-  rows.push([{ text: "关闭", callback_data: encodeResumeCloseCallback() }]);
+  rows.push([{ text: "Close", callback_data: encodeResumeCloseCallback() }]);
 
   return {
     text: buildResumeThreadListText(threads, options),
@@ -535,20 +535,20 @@ export function buildArchiveSuccessText(
   } | null
 ): string {
   const lines = [
-    formatHtmlHeading("已归档会话"),
-    formatHtmlField("会话名：", session.displayName),
-    formatHtmlField("项目：", displayProjectName(session.projectName, session.projectAlias ?? null))
+    formatHtmlHeading("Archived Sessions"),
+    formatHtmlField("Session: ", session.displayName),
+    formatHtmlField("Project: ", displayProjectName(session.projectName, session.projectAlias ?? null))
   ];
   if (nextActiveSession) {
-    lines.push(formatHtmlField("当前会话：", nextActiveSession.displayName));
+    lines.push(formatHtmlField("Session: ", nextActiveSession.displayName));
     lines.push(
       formatHtmlField(
-        "当前项目：",
+        "Current project：",
         displayProjectName(nextActiveSession.projectName, nextActiveSession.projectAlias ?? null)
       )
     );
   } else {
-    lines.push("当前没有活动会话，请发送 /new 选择项目。");
+    lines.push("No active sessions. Send /new to select a project.");
   }
 
   return lines.join("\n");
@@ -565,59 +565,59 @@ export function buildArchiveAllSuccessText(options: {
   } | null;
 }): string {
   const lines = [
-    formatHtmlHeading("已批量归档会话"),
-    formatHtmlField("已归档：", `${options.archivedCount} 个`)
+    formatHtmlHeading("Batch Archive Results"),
+    formatHtmlField("Archived: ", `${options.archivedCount} `)
   ];
 
   if (options.skippedRunningCount > 0) {
-    lines.push(formatHtmlField("已跳过运行中：", `${options.skippedRunningCount} 个`));
+    lines.push(formatHtmlField("Skipped (running): ", `${options.skippedRunningCount} `));
   }
 
   if (options.failedCount > 0) {
-    lines.push(formatHtmlField("失败：", `${options.failedCount} 个`));
+    lines.push(formatHtmlField("Failed: ", `${options.failedCount} `));
   }
 
   if (options.nextActiveSession) {
-    lines.push(formatHtmlField("当前会话：", options.nextActiveSession.displayName));
+    lines.push(formatHtmlField("Session: ", options.nextActiveSession.displayName));
     lines.push(
       formatHtmlField(
-        "当前项目：",
+        "Current project：",
         displayProjectName(options.nextActiveSession.projectName, options.nextActiveSession.projectAlias ?? null)
       )
     );
   } else {
-    lines.push("当前没有活动会话，请发送 /new 选择项目。");
+    lines.push("No active sessions. Send /new to select a project.");
   }
 
   return lines.join("\n");
 }
 
 export function buildUnarchiveSuccessText(sessionName: string, projectName: string): string {
-  return buildSessionProjectContextBlock("已恢复会话", sessionName, projectName);
+  return buildSessionProjectContextBlock("Resumed session", sessionName, projectName);
 }
 
 export function buildSessionRenamedText(name: string): string {
-  return formatHtmlField("当前会话已重命名为：", name);
+  return formatHtmlField("Current session renamed to: ", name);
 }
 
 export function buildProjectAliasRenamedText(name: string): string {
-  return formatHtmlField("当前项目别名已更新为：", name);
+  return formatHtmlField("Current project alias updated to: ", name);
 }
 
 export function buildProjectAliasClearedText(projectName: string): string {
-  return formatHtmlField("已清除项目别名：", projectName);
+  return formatHtmlField("Cleared project alias: ", projectName);
 }
 
 export function buildProjectPinnedText(projectName: string): string {
-  return formatHtmlField("已收藏项目：", projectName);
+  return formatHtmlField("StarredProject：", projectName);
 }
 
 export function buildModelPickerClosedText(session: SessionRow, modelState?: SessionModelDisplayState): string {
   const state = resolveModelDisplayState(session, modelState);
   return [
-    formatHtmlHeading("已关闭模型选择"),
-    formatHtmlField("当前配置：", formatModelReasoning(state.configuredModel, state.configuredReasoningEffort)),
-    formatHtmlField("当前生效：", formatModelReasoning(state.effectiveModel, state.effectiveReasoningEffort))
+    formatHtmlHeading("Model Selection Closed"),
+    formatHtmlField("Configured: ", formatModelReasoning(state.configuredModel, state.configuredReasoningEffort)),
+    formatHtmlField("Effective: ", formatModelReasoning(state.effectiveModel, state.effectiveReasoningEffort))
   ].join("\n");
 }
 
@@ -631,41 +631,41 @@ export function buildRenameTargetPicker(options: {
 } {
   const rows: TelegramInlineKeyboardMarkup["inline_keyboard"] = [
     [
-      { text: "重命名会话", callback_data: encodeRenameSessionCallback(options.sessionId) },
-      { text: "设置项目别名", callback_data: encodeRenameProjectCallback(options.sessionId) }
+      { text: "Rename Session", callback_data: encodeRenameSessionCallback(options.sessionId) },
+      { text: "Set Project Alias", callback_data: encodeRenameProjectCallback(options.sessionId) }
     ]
   ];
 
   if (options.hasProjectAlias) {
-    rows.push([{ text: "清除项目别名", callback_data: encodeRenameProjectClearCallback(options.sessionId) }]);
+    rows.push([{ text: "Clear Project Alias", callback_data: encodeRenameProjectClearCallback(options.sessionId) }]);
   }
 
   return {
     text: [
-      "要修改哪个名称？",
-      formatHtmlField("当前项目：", options.projectName)
+      "Which name would you like to modify?",
+      formatHtmlField("Current project：", options.projectName)
     ].join("\n"),
     replyMarkup: { inline_keyboard: rows }
   };
 }
 
 export function buildUnsupportedCommandText(): string {
-  return "这个命令还没开放。";
+  return "This command is not available yet。";
 }
 
 function formatSessionState(session: SessionRow): string {
   switch (session.status) {
     case "running":
-      return "执行中";
+      return "Running";
     case "interrupted":
-      return "已中断";
+      return "Stopped";
     case "failed":
       return session.failureReason
-        ? `失败（${formatSessionFailureReason(session.failureReason)}）`
-        : "失败";
+        ? `Failed（${formatSessionFailureReason(session.failureReason)}）`
+        : "Failed";
     case "idle":
     default:
-      return "空闲";
+      return "Idle";
   }
 }
 
@@ -710,7 +710,7 @@ function formatReasoningEffortLabelForCard(effort: ReasoningEffort, language: Ui
 
 function formatSessionModelReasoningConfigForCard(state: SessionModelDisplayState, language: UiLanguage): string {
   if (language !== "en") {
-    return `配置 ${formatModelReasoning(state.configuredModel, state.configuredReasoningEffort)} / 生效 ${formatModelReasoning(state.effectiveModel, state.effectiveReasoningEffort)}`;
+    return `configured ${formatModelReasoning(state.configuredModel, state.configuredReasoningEffort)} / effective ${formatModelReasoning(state.effectiveModel, state.effectiveReasoningEffort)}`;
   }
 
   return `configured ${formatModelReasoningForCard(state.configuredModel, state.configuredReasoningEffort, language)} / effective ${formatModelReasoningForCard(state.effectiveModel, state.effectiveReasoningEffort, language)}`;
@@ -719,14 +719,14 @@ function formatSessionModelReasoningConfigForCard(state: SessionModelDisplayStat
 function formatSessionFailureReason(reason: SessionRow["failureReason"]): string {
   switch (reason) {
     case "bridge_restart":
-      return "桥接服务重启";
+      return "Bridge restarted";
     case "app_server_lost":
-      return "Codex 服务断开";
+      return "Codex disconnected";
     case "turn_failed":
-      return "执行失败";
+      return "Execution failed";
     case "unknown":
     default:
-      return "未知原因";
+      return "Unknown reason";
   }
 }
 
@@ -737,28 +737,28 @@ function formatLastTurnSummary(session: SessionRow): string | null {
 
   switch (session.lastTurnStatus) {
     case "completed":
-      return "上次已完成";
+      return "Last Done";
     case "interrupted":
-      return "上次已中断";
+      return "Interrupted";
     case "failed":
-      return session.failureReason ? `上次失败（${formatSessionFailureReason(session.failureReason)}）` : "上次失败";
+      return session.failureReason ? `Last failed (${formatSessionFailureReason(session.failureReason)})` : "Last failed";
     default:
       return null;
   }
 }
 
 function buildDefaultModelButtonLabel(state: SessionModelDisplayState): string {
-  const marker = state.configuredModel === null && state.configuredReasoningEffort === null ? " [已配置]" : "";
-  return `清除模型/强度覆盖${marker}`;
+  const marker = state.configuredModel === null && state.configuredReasoningEffort === null ? " [configured]" : "";
+  return `Clear model/effort override${marker}`;
 }
 
 function buildModelButtonLabel(model: ModelPickerOption, state: SessionModelDisplayState): string {
   const markers: string[] = [];
   if (state.configuredModel === model.id) {
-    markers.push("已配置");
+    markers.push("configured");
   }
   if (state.effectiveModel === model.id) {
-    markers.push("生效");
+    markers.push("effective");
   }
   const markerText = markers.length > 0 ? ` [${markers.join("/")}]` : "";
   return `${model.displayName}${markerText}`;
@@ -772,13 +772,13 @@ function buildDefaultEffortButtonLabel(
 ): string {
   const markers: string[] = [];
   if (isConfiguredModel && state.configuredReasoningEffort === null) {
-    markers.push("已配置");
+    markers.push("configured");
   }
   if (isEffectiveModel && state.effectiveReasoningEffort === null) {
-    markers.push("生效");
+    markers.push("effective");
   }
   const markerText = markers.length > 0 ? ` [${markers.join("/")}]` : "";
-  return `默认（${formatReasoningEffortLabel(defaultReasoningEffort)}）${markerText}`;
+  return `Default（${formatReasoningEffortLabel(defaultReasoningEffort)}）${markerText}`;
 }
 
 function buildReasoningEffortButtonLabel(
@@ -789,10 +789,10 @@ function buildReasoningEffortButtonLabel(
 ): string {
   const markers: string[] = [];
   if (isConfiguredModel && state.configuredReasoningEffort === effort) {
-    markers.push("已配置");
+    markers.push("configured");
   }
   if (isEffectiveModel && state.effectiveReasoningEffort === effort) {
-    markers.push("生效");
+    markers.push("effective");
   }
   const markerText = markers.length > 0 ? ` [${markers.join("/")}]` : "";
   return `${formatReasoningEffortLabel(effort)}${markerText}`;
@@ -815,15 +815,15 @@ function resolveModelDisplayState(
 }
 
 function formatModelReasoning(model: string | null, effort: ReasoningEffort | null): string {
-  const modelLabel = model ?? "默认模型";
-  const effortLabel = effort ? formatReasoningEffortLabel(effort) : "默认";
+  const modelLabel = model ?? "DefaultModel";
+  const effortLabel = effort ? formatReasoningEffortLabel(effort) : "Default";
   return `${modelLabel} + ${effortLabel}`;
 }
 
 function formatModelReasoningForCard(model: string | null, effort: ReasoningEffort | null, language: UiLanguage): string {
-  const modelLabel = model ?? (language === "en" ? "Default model" : "默认模型");
+  const modelLabel = model ?? (language === "en" ? "Default model" : "DefaultModel");
   const effortLabel = effort
     ? formatReasoningEffortLabelForCard(effort, language)
-    : language === "en" ? "default" : "默认";
+    : language === "en" ? "default" : "Default";
   return `${modelLabel} + ${effortLabel}`;
 }
