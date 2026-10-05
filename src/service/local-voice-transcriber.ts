@@ -9,7 +9,7 @@ const TRANSCRIBE_SCRIPT = `
 import json, sys
 from faster_whisper import WhisperModel
 model = WhisperModel(sys.argv[2], device="cpu", compute_type="int8", cpu_threads=4)
-segments, _ = model.transcribe(sys.argv[1], language=sys.argv[3] or None, beam_size=5, vad_filter=True)
+segments, _ = model.transcribe(sys.argv[1], language=sys.argv[3] or None, beam_size=5, vad_filter=True, condition_on_previous_text=False)
 print(json.dumps({"text": " ".join(segment.text.strip() for segment in segments).strip()}))
 `;
 
@@ -21,7 +21,7 @@ export async function transcribeLocalVoice(
   let stdout: string;
   try {
     ({ stdout } = await run(config.voiceWhisperPythonBin || "python3", [
-      "-c", TRANSCRIBE_SCRIPT, audioPath, config.voiceWhisperModel || "small", config.voiceWhisperLanguage || ""
+      "-c", TRANSCRIBE_SCRIPT, audioPath, config.voiceWhisperModel || "small", config.voiceWhisperLanguage ?? "en"
     ], { timeout: 180_000, maxBuffer: 1024 * 1024, encoding: "utf8", killSignal: "SIGKILL" }));
   } catch (error) {
     const failure = error as { killed?: boolean; code?: string | number };
@@ -38,6 +38,13 @@ export async function transcribeLocalVoice(
   const text = result && typeof result === "object" && "text" in result ? result.text : null;
   if (typeof text !== "string" || !text.trim()) {
     throw new Error("No speech was detected in the voice message");
+  }
+  if ((config.voiceWhisperLanguage ?? "en") === "en") {
+    const letters = text.match(/\p{Letter}/gu) ?? [];
+    const nonLatin = letters.filter(letter => !/\p{Script=Latin}/u.test(letter));
+    if (letters.length > 0 && nonLatin.length / letters.length > 0.2) {
+      throw new Error("English transcription returned garbled text. Please resend the voice message.");
+    }
   }
   return text.trim();
 }

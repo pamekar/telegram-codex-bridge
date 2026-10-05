@@ -29,3 +29,12 @@ test("local voice transcription reports missing Python and timeouts", async () =
     throw Object.assign(new Error("timeout"), { killed: true });
   }), /180-second/);
 });
+
+
+test("English voice transcription defaults to English and rejects mixed-script gibberish", async () => {
+  await assert.rejects(transcribeLocalVoice("voice.ogg", {}, async (_bin, args) => {
+    assert.equal(args[4], "en");
+    return { stdout: JSON.stringify({ text: "лиз థసిర్వస ఎపెకంనంరారంచివిలూకాక වවවද්ඛ්ඛ් of time" }) };
+  }), /garbled text/);
+  assert.equal(await transcribeLocalVoice("voice.ogg", {}, async () => ({ stdout: JSON.stringify({text: "Please review José’s project."}) })), "Please review José’s project.");
+});

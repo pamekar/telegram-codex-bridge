@@ -555,7 +555,7 @@ export class BridgeService {
         voiceTranscriptionProvider: this.config.voiceTranscriptionProvider ?? "auto",
         voiceWhisperPythonBin: this.config.voiceWhisperPythonBin ?? "python3",
         voiceWhisperModel: this.config.voiceWhisperModel ?? "small",
-        voiceWhisperLanguage: this.config.voiceWhisperLanguage ?? "",
+        voiceWhisperLanguage: this.config.voiceWhisperLanguage ?? "en",
         voiceOpenaiApiKey: this.config.voiceOpenaiApiKey,
         voiceOpenaiTranscribeModel: this.config.voiceOpenaiTranscribeModel,
         voiceFfmpegBin: this.config.voiceFfmpegBin
