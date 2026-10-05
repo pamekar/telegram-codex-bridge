@@ -414,7 +414,7 @@ test("RichInputAdapter voice processing stays in the background so later structu
 
     await adapter.handleMention("1", "Docs | app://docs/reference :: use this context");
 
-    assert.match(sentMessages[0]?.text ?? "", /已收到语音，正在转写/u);
+    assert.match(sentMessages[0]?.text ?? "", /Voice received, transcribing\./u);
     assert.equal(startStructuredTurns.length, 1);
     assert.deepEqual(startStructuredTurns[0]?.input, [
       { type: "mention", name: "Docs", path: "app://docs/reference" },
@@ -459,8 +459,8 @@ test("RichInputAdapter receives files with accompanying text as one structured t
       }]
     });
 
-    assert.match(sentMessages[0]?.text ?? "", /已接收文件附件/u);
-    assert.match(sentMessages[0]?.text ?? "", /发送 \/cancel 可取消/u);
+    assert.match(sentMessages[0]?.text ?? "", /File received:/u);
+    assert.match(sentMessages[0]?.text ?? "", /Send \/cancel to cancel\./u);
     assert.equal((sentMessages[0]?.replyMarkup as any)?.inline_keyboard?.[0]?.[0]?.text, undefined);
     assert.deepEqual(startStructuredTurns, [{
       chatId: "1",
@@ -506,7 +506,7 @@ test("RichInputAdapter retains a file reference when a same-message text preview
       }]
     });
 
-    assert.match(sentMessages[0]?.text ?? "", /已接收文件附件/u);
+    assert.match(sentMessages[0]?.text ?? "", /File received:/u);
     assert.equal(startTextTurns.length, 0);
     assert.deepEqual(startStructuredTurns, [{
       chatId: "1",
@@ -592,8 +592,8 @@ test("RichInputAdapter shows a clickable cancel action for Feishu file receipts 
       }]
     });
 
-    assert.equal((sentMessages[0]?.replyMarkup as any)?.inline_keyboard?.[0]?.[0]?.text, "取消");
-    assert.equal((sentMessages[1]?.replyMarkup as any)?.inline_keyboard?.[0]?.[0]?.text, "取消");
+    assert.equal((sentMessages[0]?.replyMarkup as any)?.inline_keyboard?.[0]?.[0]?.text, "Cancel");
+    assert.equal((sentMessages[1]?.replyMarkup as any)?.inline_keyboard?.[0]?.[0]?.text, "Cancel");
   } finally {
     await cleanup();
   }
@@ -987,3 +987,40 @@ function expectedFileInput(preview: string): string {
     preview
   ].join("\n");
 }
+
+
+test("RichInputAdapter local voice transcript is displayed and submitted without cloud transcription", async () => {
+  for (const fail of [false, true]) {
+    const { adapter, store, sentMessages, startTextTurns, cleanup } = await createAdapterContext({
+      config: { ...testConfig, voiceInputEnabled: true, voiceTranscriptionProvider: "faster-whisper", voiceOpenaiApiKey: "unused-key" },
+      api: {
+        getFile: async () => ({ file_id: "voice-1", file_path: "voice.ogg" }),
+        downloadFile: async (_id: string, target: string) => { await writeFile(target, "test audio"); return target; }
+      }
+    });
+    try {
+      const session = authorizeChatWithSession(store, "1");
+      let localCalls = 0;
+      (adapter as any).transcribeVoiceLocally = async () => {
+        localCalls++;
+        if (fail) throw new Error("No speech was detected");
+        return { transcript: "Please inspect the project.", source: "faster-whisper" };
+      };
+      (adapter as any).transcribeVoiceWithOpenAi = async () => { assert.fail("local mode called cloud transcription"); };
+      (adapter as any).transcribeVoiceWithRealtime = async () => { assert.fail("local mode called Realtime"); };
+      await adapter.handleVoiceMessage("1", {
+        message_id: 1, from: { id: 1, is_bot: false, first_name: "Tester" },
+        chat: { id: 1, type: "private" }, date: 0, voice: { file_id: "voice-1", duration: 3 }
+      } as never);
+      await (adapter as any).voiceTaskQueue;
+      assert.equal(localCalls, 1);
+      if (fail) {
+        assert.equal(startTextTurns.length, 0);
+        assert.ok(sentMessages.some(message => message.text.includes("Local voice transcription failed")));
+      } else {
+        assert.deepEqual(startTextTurns, [{ chatId: "1", sessionId: session.sessionId, text: "Please inspect the project.", transcript: "Please inspect the project." }]);
+        assert.ok(sentMessages.some(message => message.text === "Voice transcription: Please inspect the project."));
+      }
+    } finally { await cleanup(); }
+  }
+});

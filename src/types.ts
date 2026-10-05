@@ -146,6 +146,7 @@ export interface ReadinessDetails {
   capabilityCheckSource?: "cache" | "generated_schema" | "unknown";
   voiceInputEnabled?: boolean;
   voiceOpenaiConfigured?: boolean;
+  voiceLocalAvailable?: boolean;
   voiceFfmpegAvailable?: boolean;
   voiceFfmpegResolvedPath?: string;
   voiceRealtimeSupported?: boolean;

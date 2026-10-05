@@ -491,7 +491,14 @@ export async function probeReadiness(options: {
     } : {})
   };
 
-  if (config.voiceInputEnabled) {
+  if (config.voiceInputEnabled && config.voiceTranscriptionProvider === "faster-whisper") {
+    try {
+      const probe = await deps.runCommand(config.voiceWhisperPythonBin || "python3", ["-c", "import faster_whisper"]);
+      details.voiceLocalAvailable = probe.exitCode === 0;
+    } catch {
+      details.voiceLocalAvailable = false;
+    }
+  } else if (config.voiceInputEnabled) {
     const resolvedFfmpeg = await deps.resolveCommand(config.voiceFfmpegBin);
     details.voiceFfmpegAvailable = resolvedFfmpeg !== null;
     if (resolvedFfmpeg) {
@@ -669,7 +676,7 @@ export async function probeReadiness(options: {
       ok: true,
       summary: "app-server initialized successfully"
     });
-    if (config.voiceInputEnabled && appServer.listModels) {
+    if (config.voiceInputEnabled && config.voiceTranscriptionProvider !== "faster-whisper" && appServer.listModels) {
       try {
         details.voiceRealtimeSupported = await hasAudioCapableModel(appServer);
       } catch {
@@ -695,8 +702,9 @@ export async function probeReadiness(options: {
 
   if (
     config.voiceInputEnabled
-    && !details.voiceOpenaiConfigured
-    && !(details.voiceRealtimeSupported && details.voiceFfmpegAvailable)
+    && (config.voiceTranscriptionProvider === "faster-whisper"
+      ? !details.voiceLocalAvailable
+      : !details.voiceOpenaiConfigured && !(details.voiceRealtimeSupported && details.voiceFfmpegAvailable))
   ) {
     details.issues.push("voice input is enabled but no usable transcription backend is available");
     await appServer.stop().catch(() => {});

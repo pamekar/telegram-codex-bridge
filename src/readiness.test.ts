@@ -1055,3 +1055,64 @@ test("probeReadiness still reports missing Feishu observations when none are sto
     await cleanup();
   }
 });
+
+test("probeReadiness accepts local transcription without ffmpeg or Realtime", async () => {
+  const { paths, store, cleanup } = await createReadinessContext();
+
+  try {
+    const result = await probeReadiness({
+      config: {
+        ...testConfig,
+        voiceInputEnabled: true, voiceTranscriptionProvider: "faster-whisper", voiceWhisperPythonBin: "/local/python"
+      },
+      store,
+      paths,
+      logger: testLogger,
+      persist: false,
+      deps: {
+        nodeVersion: process.version,
+        detectServiceManager: async () => ({
+          manager: "none",
+          health: "warning",
+          issues: []
+        }),
+        commandExists: async (command: string) => command !== "ffmpeg",
+        runCommand: async (_command: string, args: string[]) => {
+          if (args[0] === "-c") return { exitCode: 0, stdout: "", stderr: "" };
+          if (args[0] === "--version") {
+            return { exitCode: 0, stdout: "codex-cli 0.114.0", stderr: "" };
+          }
+          if (args[0] === "login") {
+            return { exitCode: 0, stdout: "Logged in", stderr: "" };
+          }
+          throw new Error(`unexpected command: ${args.join(" ")}`);
+        },
+        runPackHealthCheck: async () => createTelegramPackHealthReport(),
+        createAppServer: () => ({
+          pid: 123,
+          initializeAndProbe: async () => {},
+          listModels: async () => ({
+            data: [],
+            nextCursor: null
+          }),
+          stop: async () => {}
+        }),
+        evaluateCapabilities: async () => ({
+          ok: true,
+          source: "cache",
+          issues: []
+        })
+      }
+    } as any);
+
+    assert.notEqual(result.snapshot.state, "bridge_unhealthy");
+    assert.equal(result.snapshot.details.voiceLocalAvailable, true);
+    assert.equal(result.snapshot.details.voiceInputEnabled, true);
+    assert.equal(result.snapshot.details.voiceOpenaiConfigured, false);
+    assert.equal(result.snapshot.details.voiceFfmpegAvailable, undefined);
+    assert.equal(result.snapshot.details.voiceRealtimeSupported, false);
+    assert.doesNotMatch(result.snapshot.details.issues.join("\n"), /no usable transcription backend/u);
+  } finally {
+    await cleanup();
+  }
+});

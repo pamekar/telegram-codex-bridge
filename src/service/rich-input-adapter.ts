@@ -3,6 +3,8 @@ import { access, mkdir, readFile, readdir, rm, stat, writeFile } from "node:fs/p
 import { basename, extname, join, resolve } from "node:path";
 
 import type { CodexAppServerClient, UserInput } from "../codex/app-server.js";
+import { transcribeLocalVoice } from "./local-voice-transcriber.js";
+
 import type { BridgeConfig } from "../config.js";
 import type { BridgeCommandActionView } from "../core/interaction-model/bridge-actions.js";
 import type { InboundUserMediaEvent, ResolvedMediaAsset } from "../core/interaction-model/media.js";
@@ -45,7 +47,7 @@ interface PendingRichInputComposer {
 
 interface VoiceTranscriptionResult {
   transcript: string;
-  source: "openai" | "realtime";
+  source: "openai" | "realtime" | "faster-whisper";
 }
 
 interface VoiceProcessingTask {
@@ -98,6 +100,7 @@ interface RichInputAdapterDeps {
   config: Pick<
     BridgeConfig,
     "voiceInputEnabled" | "voiceOpenaiApiKey" | "voiceOpenaiTranscribeModel" | "voiceFfmpegBin"
+    | "voiceTranscriptionProvider" | "voiceWhisperPythonBin" | "voiceWhisperModel" | "voiceWhisperLanguage"
   >;
   paths: Pick<BridgePaths, "cacheDir">;
   getUiLanguage: () => "zh" | "en";
@@ -562,7 +565,17 @@ export class RichInputAdapter {
       }
 
       let transcription: VoiceTranscriptionResult | null = null;
-      if (this.deps.config.voiceOpenaiApiKey.trim()) {
+      if (this.deps.config.voiceTranscriptionProvider === "faster-whisper") {
+        try {
+          transcription = await this.transcribeVoiceLocally(localVoicePath);
+        } catch (error) {
+          await this.deps.logger.warn("local voice transcription failed", {
+            chatId: task.chatId, sessionId: session.sessionId, error: `${error}`
+          });
+          await this.deps.safeSendMessage(task.chatId, `Local voice transcription failed: ${normalizeWhitespace(`${error}`)}`);
+          return;
+        }
+      } else if (this.deps.config.voiceOpenaiApiKey.trim()) {
         try {
           transcription = await this.transcribeVoiceWithOpenAi(localVoicePath);
         } catch (error) {
@@ -727,6 +740,10 @@ export class RichInputAdapter {
 
     await this.deps.startStructuredTurn(chatId, session, input);
     return true;
+  }
+
+  private async transcribeVoiceLocally(localVoicePath: string): Promise<VoiceTranscriptionResult> {
+    return { transcript: await transcribeLocalVoice(localVoicePath, this.deps.config), source: "faster-whisper" };
   }
 
   private async transcribeVoiceWithOpenAi(localVoicePath: string): Promise<VoiceTranscriptionResult> {

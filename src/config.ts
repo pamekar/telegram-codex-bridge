@@ -13,7 +13,14 @@ import type { BridgePaths } from "./paths.js";
 import { parseBooleanLike } from "./util/boolean.js";
 import { expandHomePath, normalizeComparablePath } from "./util/path.js";
 
-export interface SharedBridgeConfig {
+export interface LocalVoiceConfig {
+  voiceTranscriptionProvider?: "auto" | "faster-whisper";
+  voiceWhisperPythonBin?: string;
+  voiceWhisperModel?: string;
+  voiceWhisperLanguage?: string;
+}
+
+export interface SharedBridgeConfig extends LocalVoiceConfig {
   activePack: BridgePackName;
   codexBin: string;
   projectScanRoots: string[];
@@ -31,7 +38,7 @@ export interface SharedBridgeConfig {
   appServerGuardCooldownMs?: number;
 }
 
-export interface BridgeConfig {
+export interface BridgeConfig extends LocalVoiceConfig {
   activePack: BridgePackName;
   shared: SharedBridgeConfig;
   packs: Partial<Record<BridgePackName, unknown>>;
@@ -51,7 +58,7 @@ export interface BridgeConfig {
   appServerGuardCooldownMs?: number;
 }
 
-export interface BridgeInstallOverrides {
+export interface BridgeInstallOverrides extends LocalVoiceConfig {
   activePack?: BridgePackName;
   codexBin?: string;
   projectScanRoots?: string[];
@@ -147,6 +154,10 @@ export function buildConfigEnvironment(config: BridgeConfig): Record<string, str
     CODEX_BIN: shared.codexBin,
     PROJECT_SCAN_ROOTS: serializeProjectScanRoots(shared.projectScanRoots),
     VOICE_INPUT_ENABLED: shared.voiceInputEnabled ? "1" : "0",
+    VOICE_TRANSCRIPTION_PROVIDER: shared.voiceTranscriptionProvider ?? "auto",
+    VOICE_WHISPER_PYTHON_BIN: shared.voiceWhisperPythonBin ?? "python3",
+    VOICE_WHISPER_MODEL: shared.voiceWhisperModel ?? "small",
+    VOICE_WHISPER_LANGUAGE: shared.voiceWhisperLanguage ?? "",
     VOICE_OPENAI_API_KEY: shared.voiceOpenaiApiKey,
     VOICE_OPENAI_TRANSCRIBE_MODEL: shared.voiceOpenaiTranscribeModel,
     VOICE_FFMPEG_BIN: shared.voiceFfmpegBin,
@@ -235,7 +246,15 @@ export async function loadConfig(paths: BridgePaths): Promise<BridgeConfig> {
 
   const activePack = parseBridgePackName(merged.BRIDGE_PACK) ?? DEFAULT_SHARED_CONFIG.activePack;
   const projectScanRoots = parseProjectScanRootsValue(merged.PROJECT_SCAN_ROOTS, paths.homeDir);
+  const voiceProvider = merged.VOICE_TRANSCRIPTION_PROVIDER ?? "auto";
+  if (voiceProvider !== "auto" && voiceProvider !== "faster-whisper") {
+    throw new Error("VOICE_TRANSCRIPTION_PROVIDER must be auto or faster-whisper");
+  }
   const shared: SharedBridgeConfig = {
+    voiceTranscriptionProvider: voiceProvider,
+    voiceWhisperPythonBin: merged.VOICE_WHISPER_PYTHON_BIN || "python3",
+    voiceWhisperModel: merged.VOICE_WHISPER_MODEL || "small",
+    voiceWhisperLanguage: merged.VOICE_WHISPER_LANGUAGE ?? "",
     activePack,
     codexBin: merged.CODEX_BIN ?? DEFAULT_SHARED_CONFIG.codexBin,
     projectScanRoots,
@@ -284,6 +303,10 @@ export async function loadConfig(paths: BridgePaths): Promise<BridgeConfig> {
     codexBin: shared.codexBin,
     projectScanRoots: shared.projectScanRoots,
     voiceInputEnabled: shared.voiceInputEnabled,
+    voiceTranscriptionProvider: shared.voiceTranscriptionProvider ?? "auto",
+    voiceWhisperPythonBin: shared.voiceWhisperPythonBin ?? "python3",
+    voiceWhisperModel: shared.voiceWhisperModel ?? "small",
+    voiceWhisperLanguage: shared.voiceWhisperLanguage ?? "",
     voiceOpenaiApiKey: shared.voiceOpenaiApiKey,
     voiceOpenaiTranscribeModel: shared.voiceOpenaiTranscribeModel,
     voiceFfmpegBin: shared.voiceFfmpegBin,
@@ -320,6 +343,10 @@ export function withInstallOverrides(current: BridgeConfig, overrides: BridgeIns
     codexBin: overrides.codexBin ?? currentShared.codexBin,
     projectScanRoots: overrides.projectScanRoots ?? currentShared.projectScanRoots,
     voiceInputEnabled: overrides.voiceInputEnabled ?? currentShared.voiceInputEnabled,
+    voiceTranscriptionProvider: overrides.voiceTranscriptionProvider ?? currentShared.voiceTranscriptionProvider ?? "auto",
+    voiceWhisperPythonBin: overrides.voiceWhisperPythonBin ?? currentShared.voiceWhisperPythonBin ?? "python3",
+    voiceWhisperModel: overrides.voiceWhisperModel ?? currentShared.voiceWhisperModel ?? "small",
+    voiceWhisperLanguage: overrides.voiceWhisperLanguage ?? currentShared.voiceWhisperLanguage ?? "",
     voiceOpenaiApiKey: overrides.voiceOpenaiApiKey ?? currentShared.voiceOpenaiApiKey,
     voiceOpenaiTranscribeModel: overrides.voiceOpenaiTranscribeModel ?? currentShared.voiceOpenaiTranscribeModel,
     voiceFfmpegBin: overrides.voiceFfmpegBin ?? currentShared.voiceFfmpegBin,
@@ -358,6 +385,10 @@ export function withInstallOverrides(current: BridgeConfig, overrides: BridgeIns
     codexBin: shared.codexBin,
     projectScanRoots: shared.projectScanRoots,
     voiceInputEnabled: shared.voiceInputEnabled,
+    voiceTranscriptionProvider: shared.voiceTranscriptionProvider ?? "auto",
+    voiceWhisperPythonBin: shared.voiceWhisperPythonBin ?? "python3",
+    voiceWhisperModel: shared.voiceWhisperModel ?? "small",
+    voiceWhisperLanguage: shared.voiceWhisperLanguage ?? "",
     voiceOpenaiApiKey: shared.voiceOpenaiApiKey,
     voiceOpenaiTranscribeModel: shared.voiceOpenaiTranscribeModel,
     voiceFfmpegBin: shared.voiceFfmpegBin,

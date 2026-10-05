@@ -53,7 +53,11 @@ Node requirement:
 - Node `>=24.0.0`
 
 Voice-input backend rule:
-- when voice input is enabled, the bridge tries OpenAI audio transcription first if `VOICE_OPENAI_API_KEY` is configured
+- set `VOICE_TRANSCRIPTION_PROVIDER=faster-whisper` to transcribe locally using Python and faster-whisper; this mode does not fall back to a cloud service
+- local settings are `VOICE_WHISPER_PYTHON_BIN` (default `python3`), `VOICE_WHISPER_MODEL` (default `small`), and `VOICE_WHISPER_LANGUAGE` (empty for automatic language detection)
+- install faster-whisper in the selected Python environment; inference uses CPU/int8, with a 180-second timeout. Named instances can share the downloaded model cache. The first use of an uncached model downloads it from Hugging Face
+- set `VOICE_INPUT_ENABLED=1` in each instance's `bridge.env`, and restart that instance; the transcript is shown in chat and submitted to the selected session as voice input
+- with the default `VOICE_TRANSCRIPTION_PROVIDER=auto`, the bridge tries OpenAI audio transcription first if `VOICE_OPENAI_API_KEY` is configured
 - if OpenAI transcription is unavailable or fails, the bridge falls back to app-server realtime audio transcription when the current Codex runtime and local `ffmpeg` support it
 
 ## Config Keys
@@ -70,6 +74,10 @@ Supported config keys in `bridge.env`:
 - `FEISHU_API_BASE_URL`
 - `PROJECT_SCAN_ROOTS`
 - `VOICE_INPUT_ENABLED`
+- `VOICE_TRANSCRIPTION_PROVIDER`
+- `VOICE_WHISPER_PYTHON_BIN`
+- `VOICE_WHISPER_MODEL`
+- `VOICE_WHISPER_LANGUAGE`
 - `VOICE_OPENAI_API_KEY`
 - `VOICE_OPENAI_TRANSCRIBE_MODEL`
 - `VOICE_FFMPEG_BIN`

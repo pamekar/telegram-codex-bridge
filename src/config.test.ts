@@ -343,3 +343,22 @@ test("writeConfig persists app server guard settings and withInstallOverrides ca
     await rm(root, { recursive: true, force: true });
   }
 });
+
+
+test("local voice configuration survives install overrides and config writes", async () => {
+  const root = await mkdtemp(join(tmpdir(), "ctb-local-config-test-"));
+  const paths = createTestPaths(root);
+  try {
+    await mkdir(paths.configRoot, { recursive: true });
+    await writeFile(paths.envPath, "TELEGRAM_BOT_TOKEN=test-token\nVOICE_INPUT_ENABLED=1\nVOICE_TRANSCRIPTION_PROVIDER=faster-whisper\nVOICE_WHISPER_PYTHON_BIN=/venv/bin/python\nVOICE_WHISPER_MODEL=small\nVOICE_WHISPER_LANGUAGE=en\n");
+    const config = withInstallOverrides(await loadConfig(paths), {});
+    await writeConfig(paths, config);
+    const reloaded = await loadConfig(paths);
+    assert.equal(reloaded.voiceTranscriptionProvider, "faster-whisper");
+    assert.equal(reloaded.shared.voiceWhisperPythonBin, "/venv/bin/python");
+    assert.equal(reloaded.voiceWhisperModel, "small");
+    assert.equal(reloaded.voiceWhisperLanguage, "en");
+    await writeFile(paths.envPath, "VOICE_TRANSCRIPTION_PROVIDER=typo\n");
+    await assert.rejects(loadConfig(paths), /must be auto or faster-whisper/);
+  } finally { await rm(root, { recursive: true, force: true }); }
+});

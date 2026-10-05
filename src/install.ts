@@ -220,6 +220,7 @@ function formatSnapshot(snapshot: ReadinessSnapshot | null): string {
     `install_root_writable=${formatOptionalBoolean(snapshot.details.installRootWritable)}`,
     `voice_input_enabled=${formatOptionalBoolean(snapshot.details.voiceInputEnabled)}`,
     `voice_openai_configured=${formatOptionalBoolean(snapshot.details.voiceOpenaiConfigured)}`,
+    `voice_local_available=${formatOptionalBoolean(snapshot.details.voiceLocalAvailable)}`,
     `voice_ffmpeg_available=${formatOptionalBoolean(snapshot.details.voiceFfmpegAvailable)}`,
     `voice_ffmpeg_resolved=${formatOptionalValue(snapshot.details.voiceFfmpegResolvedPath)}`,
     `voice_realtime_supported=${formatOptionalBoolean(snapshot.details.voiceRealtimeSupported)}`,
