@@ -188,7 +188,7 @@ While a turn is running:
 - never expose raw reasoning deltas in the default chat flow
 - if Telegram refuses an edit or rate-limits it, retry the same card later instead of sending replacement-message spam
 - let `/inspect` return a snapshot on demand instead of pushing extra detail automatically
-- reanchor the hub to the bottom immediately when the bridge accepts plain-text work that starts a turn, structured or rich input that starts a turn, or accepted blocked-turn continuation input
+- reanchor the hub to the bottom immediately when the bridge accepts plain-text work that starts a turn, structured or rich input that starts a turn, or accepted mid-task steering input
 - keep delayed auto-refresh only for a new turn that stays running for a short delay, or after a blocked turn resumes running and stays running for a short delay; suppress duplicate delayed start churn after an immediate accepted-work reanchor
 - do not auto-refresh the hub after final answers, plan results, `/status`, `/inspect`, `/where`, `/help`, language changes, interrupt replies, failure notices, or session-management confirmations
 - when actionable interaction cards are pending, keep them visually primary and block both automatic hub refresh and `/hub` pull-up
@@ -196,14 +196,16 @@ While a turn is running:
 - bridge-owned interaction cards and their resolved answered or canceled result cards append `如需查看或刷新 Hub，可发送 /hub。` as a contextual handoff while the interaction surface remains primary
 
 While a turn is running:
-- do not queue a second turn
-- reply with `当前项目仍在执行，请等待完成或发送 /interrupt。`
-- before the user has learned `/hub`, plain-text busy-turn rejection may append `需要查看运行卡片时，可发送 /hub。`
+- additional plain text, voice transcripts, and rich inputs become `turn/steer` on the active thread and turn, without requiring `/interrupt`
+- confirm successful acceptance with `Added your message to the running task.`; this confirms delivery to Codex, not immediate application
+- if Codex explicitly rejects steering because the turn has just finished, wait briefly for terminal state reduction and start the input as a follow-up in the same session
+- do not automatically resubmit after a timeout or transport failure, because the input may already have been accepted; ask the user to check `/status` before retrying
+- if active turn tracking is unavailable, retain the busy-turn reply and `/hub` reminder
 
-Blocked-turn continuation and rich input rules:
-- if the active turn is blocked and the session has no unresolved interaction cards, plain text becomes `turn/steer`
+Mid-task steering and rich input rules:
+- running and blocked turns both accept `turn/steer` when the session has no unresolved interaction cards
 - if any interaction card for the active session is still `pending` or `awaiting_text`, the user must answer or cancel that interaction before unrelated text or rich input can continue the turn
-- the same blocked-turn continuation path also accepts queued `skill`, `localImage`, `mention`, and Telegram photo inputs, but only after unresolved interaction cards are cleared
+- the same mid-task steering path also accepts queued `skill`, `localImage`, `mention`, and Telegram photo inputs, but only after unresolved interaction cards are cleared
 - Telegram photo messages are downloaded bridge-side and submitted as `localImage` input
 - a photo caption is used as the prompt immediately; without a caption, the bridge queues the image and waits for the next text message
 - Telegram remains an adapted UX, not a raw terminal surface

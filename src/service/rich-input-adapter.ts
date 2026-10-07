@@ -106,8 +106,11 @@ interface RichInputAdapterDeps {
   getUiLanguage: () => "zh" | "en";
   isStopping: () => boolean;
   sleep: (delayMs: number) => Promise<void>;
-  getBlockedTurnSteerAvailability: (chatId: string, session: SessionRow) => RichInputTurnAvailability;
+  getTurnSteerAvailability: (chatId: string, session: SessionRow) => RichInputTurnAvailability;
   sendPendingInteractionBlockNotice: (chatId: string) => Promise<void>;
+  steerTurnInput: (
+    chatId: string, session: SessionRow, threadId: string, turnId: string, input: UserInput[]
+  ) => Promise<"steered" | "follow_up">;
   reanchorAcceptedTurnContinuation: (chatId: string, sessionId: string) => Promise<void>;
   startTextTurn: (
     chatId: string,
@@ -502,7 +505,7 @@ export class RichInputAdapter {
       return;
     }
 
-    const steerAvailability = this.deps.getBlockedTurnSteerAvailability(chatId, session);
+    const steerAvailability = this.deps.getTurnSteerAvailability(chatId, session);
     if (session.status === "running" && steerAvailability.kind !== "available") {
       if (steerAvailability.kind === "interaction_pending") {
         await this.deps.sendPendingInteractionBlockNotice(chatId);
@@ -626,16 +629,22 @@ export class RichInputAdapter {
 
   private async submitVoiceTranscript(chatId: string, session: SessionRow, transcript: string): Promise<void> {
     if (session.status === "running") {
-      const steerAvailability = this.deps.getBlockedTurnSteerAvailability(chatId, session);
+      const steerAvailability = this.deps.getTurnSteerAvailability(chatId, session);
       if (steerAvailability.kind === "available") {
         try {
-          const appServer = await this.deps.ensureAppServerAvailable();
-          await appServer.steerTurn({
-            threadId: steerAvailability.threadId,
-            expectedTurnId: steerAvailability.turnId,
-            input: [{ type: "text", text: transcript }]
-          });
-          await this.deps.reanchorAcceptedTurnContinuation(chatId, session.sessionId);
+          const result = await this.deps.steerTurnInput(
+            chatId, session, steerAvailability.threadId, steerAvailability.turnId, [{ type: "text", text: transcript }]
+          );
+          if (result === "follow_up") {
+            const current = this.deps.getStore()?.getSessionById(session.sessionId);
+            if (!current) {
+              throw new Error("session is no longer available");
+            }
+            await this.deps.safeSendMessage(chatId, "The previous task finished; starting your message as a follow-up.");
+            await this.deps.startTextTurn(chatId, current, transcript, { sourceKind: "voice", transcript });
+          } else {
+            await this.deps.reanchorAcceptedTurnContinuation(chatId, session.sessionId);
+          }
         } catch (error) {
           await this.deps.logger.warn("voice turn steer failed", {
             chatId,
@@ -644,7 +653,7 @@ export class RichInputAdapter {
             turnId: steerAvailability.turnId,
             error: `${error}`
           });
-          await this.deps.safeSendMessage(chatId, "Codex service temporarily unavailable. Please retry later.");
+          await this.deps.safeSendMessage(chatId, "Could not confirm that Codex accepted your message. Check /status before retrying.");
         }
         return;
       }
@@ -666,16 +675,22 @@ export class RichInputAdapter {
 
   private async submitTextInput(chatId: string, session: SessionRow, text: string): Promise<boolean> {
     if (session.status === "running") {
-      const steerAvailability = this.deps.getBlockedTurnSteerAvailability(chatId, session);
+      const steerAvailability = this.deps.getTurnSteerAvailability(chatId, session);
       if (steerAvailability.kind === "available") {
         try {
-          const appServer = await this.deps.ensureAppServerAvailable();
-          await appServer.steerTurn({
-            threadId: steerAvailability.threadId,
-            expectedTurnId: steerAvailability.turnId,
-            input: [{ type: "text", text }]
-          });
-          await this.deps.reanchorAcceptedTurnContinuation(chatId, session.sessionId);
+          const result = await this.deps.steerTurnInput(
+            chatId, session, steerAvailability.threadId, steerAvailability.turnId, [{ type: "text", text }]
+          );
+          if (result === "follow_up") {
+            const current = this.deps.getStore()?.getSessionById(session.sessionId);
+            if (!current) {
+              throw new Error("session is no longer available");
+            }
+            await this.deps.safeSendMessage(chatId, "The previous task finished; starting your message as a follow-up.");
+            await this.deps.startTextTurn(chatId, current, text);
+          } else {
+            await this.deps.reanchorAcceptedTurnContinuation(chatId, session.sessionId);
+          }
         } catch (error) {
           await this.deps.logger.warn("text turn steer failed for inbound media event", {
             chatId,
@@ -684,7 +699,7 @@ export class RichInputAdapter {
             turnId: steerAvailability.turnId,
             error: `${error}`
           });
-          await this.deps.safeSendMessage(chatId, "Codex service temporarily unavailable. Please retry later.");
+          await this.deps.safeSendMessage(chatId, "Could not confirm that Codex accepted your message. Check /status before retrying.");
           return false;
         }
         return true;
@@ -705,16 +720,22 @@ export class RichInputAdapter {
 
   private async submitRichInputs(chatId: string, session: SessionRow, input: UserInput[]): Promise<boolean> {
     if (session.status === "running") {
-      const steerAvailability = this.deps.getBlockedTurnSteerAvailability(chatId, session);
+      const steerAvailability = this.deps.getTurnSteerAvailability(chatId, session);
       if (steerAvailability.kind === "available") {
         try {
-          const appServer = await this.deps.ensureAppServerAvailable();
-          await appServer.steerTurn({
-            threadId: steerAvailability.threadId,
-            expectedTurnId: steerAvailability.turnId,
-            input
-          });
-          await this.deps.reanchorAcceptedTurnContinuation(chatId, session.sessionId);
+          const result = await this.deps.steerTurnInput(
+            chatId, session, steerAvailability.threadId, steerAvailability.turnId, input
+          );
+          if (result === "follow_up") {
+            const current = this.deps.getStore()?.getSessionById(session.sessionId);
+            if (!current) {
+              throw new Error("session is no longer available");
+            }
+            await this.deps.safeSendMessage(chatId, "The previous task finished; starting your message as a follow-up.");
+            await this.deps.startStructuredTurn(chatId, current, input);
+          } else {
+            await this.deps.reanchorAcceptedTurnContinuation(chatId, session.sessionId);
+          }
         } catch (error) {
           await this.deps.logger.warn("turn steer failed", {
             chatId,
@@ -723,7 +744,7 @@ export class RichInputAdapter {
             turnId: steerAvailability.turnId,
             error: `${error}`
           });
-          await this.deps.safeSendMessage(chatId, "Codex service temporarily unavailable. Please retry later.");
+          await this.deps.safeSendMessage(chatId, "Could not confirm that Codex accepted your message. Check /status before retrying.");
           return false;
         }
         return true;

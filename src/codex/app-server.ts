@@ -37,6 +37,13 @@ export interface JsonRpcServerRequest {
 
 export type JsonRpcRequestId = number | string;
 
+export class AppServerRpcError extends Error {
+  constructor(readonly code: number, message: string, readonly data?: unknown) {
+    super(message);
+    this.name = "AppServerRpcError";
+  }
+}
+
 type JsonRpcMessage = JsonRpcSuccess | JsonRpcError | JsonRpcNotification | JsonRpcServerRequest;
 type NotificationHandler = (notification: JsonRpcNotification) => void;
 type ServerRequestHandler = (request: JsonRpcServerRequest) => void;
@@ -837,7 +844,8 @@ export class CodexAppServerClient {
     expectedTurnId: string;
     input: UserInput[];
   }): Promise<void> {
-    await this.request("turn/steer", options);
+    // A delayed steering acknowledgment must not kill the ongoing task.
+    await this.request("turn/steer", options, { terminateOnTimeout: false });
   }
 
   async request<T>(method: string, params: unknown, options?: RequestOptions): Promise<T> {
@@ -1064,7 +1072,7 @@ export class CodexAppServerClient {
     this.pending.delete(message.id);
 
     if ("error" in message) {
-      pending.reject(new Error(message.error.message));
+      pending.reject(new AppServerRpcError(message.error.code, message.error.message, message.error.data));
       return;
     }
 

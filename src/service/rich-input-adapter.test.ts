@@ -108,7 +108,8 @@ async function createAdapterContext(options: {
   config?: BridgeConfig;
   api?: Record<string, unknown>;
   appServer?: Record<string, unknown>;
-  getBlockedTurnSteerAvailability?: () => { kind: "available"; threadId: string; turnId: string } | { kind: "interaction_pending" } | { kind: "busy" };
+  steerTurnInput?: () => Promise<"steered" | "follow_up">;
+  getTurnSteerAvailability?: () => { kind: "available"; threadId: string; turnId: string } | { kind: "interaction_pending" } | { kind: "busy" };
 } = {}) {
   const root = await mkdtemp(join(tmpdir(), "ctb-rich-input-test-"));
   const paths = createTestPaths(root);
@@ -163,8 +164,17 @@ async function createAdapterContext(options: {
     getUiLanguage: () => "zh",
     isStopping: () => false,
     sleep: async () => {},
-    getBlockedTurnSteerAvailability: () =>
-      options.getBlockedTurnSteerAvailability?.() ?? { kind: "busy" },
+    getTurnSteerAvailability: () =>
+      options.getTurnSteerAvailability?.() ?? { kind: "busy" },
+    steerTurnInput: async (_chatId, _session, threadId, turnId, input) => {
+      if (options.steerTurnInput) {
+        return options.steerTurnInput();
+      }
+      await (options.appServer?.steerTurn as ((payload: unknown) => Promise<void>) | undefined)?.({
+        threadId, expectedTurnId: turnId, input
+      });
+      return "steered";
+    },
     sendPendingInteractionBlockNotice: async (chatId) => {
       pendingInteractionNotices.push(chatId);
     },
@@ -305,7 +315,7 @@ test("RichInputAdapter sends /attach as a structured mention turn for the stored
 
 test("RichInputAdapter does not queue rich input while a running turn is blocked by a pending interaction", async () => {
   const { adapter, store, pendingInteractionNotices, cleanup } = await createAdapterContext({
-    getBlockedTurnSteerAvailability: () => ({ kind: "interaction_pending" })
+    getTurnSteerAvailability: () => ({ kind: "interaction_pending" })
   });
 
   try {
@@ -334,7 +344,7 @@ test("RichInputAdapter does not queue rich input while a running turn is blocked
 test("RichInputAdapter reanchors the hub after accepted structured turn continuation", async () => {
   const steerCalls: unknown[] = [];
   const { adapter, store, continuationReanchorCalls, cleanup } = await createAdapterContext({
-    getBlockedTurnSteerAvailability: () => ({ kind: "available", threadId: "thread-1", turnId: "turn-1" }),
+    getTurnSteerAvailability: () => ({ kind: "available", threadId: "thread-1", turnId: "turn-1" }),
     appServer: {
       steerTurn: async (payload: unknown) => {
         steerCalls.push(payload);
@@ -370,6 +380,41 @@ test("RichInputAdapter reanchors the hub after accepted structured turn continua
       chatId: "1",
       sessionId: runningSession.sessionId
     }]);
+  } finally {
+    await cleanup();
+  }
+});
+
+test("RichInputAdapter steers voice transcripts during ordinary running work", async () => {
+  const calls: unknown[] = [];
+  const { adapter, store, startTextTurns, continuationReanchorCalls, cleanup } = await createAdapterContext({
+    getTurnSteerAvailability: () => ({ kind: "available", threadId: "thread-voice", turnId: "turn-voice" }),
+    appServer: { steerTurn: async (input: unknown) => { calls.push(input); } }
+  });
+  try {
+    const session = authorizeChatWithSession(store, "1");
+    store.updateSessionStatus(session.sessionId, "running", { lastTurnId: "turn-voice", lastTurnStatus: "inProgress" });
+    await (adapter as any).submitVoiceTranscript("1", store.getSessionById(session.sessionId), "Use staging");
+    assert.deepEqual(calls, [{ threadId: "thread-voice", expectedTurnId: "turn-voice", input: [{ type: "text", text: "Use staging" }] }]);
+    assert.equal(startTextTurns.length, 0);
+    assert.equal(continuationReanchorCalls.length, 1);
+  } finally {
+    await cleanup();
+  }
+});
+
+test("RichInputAdapter starts rich input as a follow-up after a completed-turn rejection", async () => {
+  const { adapter, store, startStructuredTurns, sentMessages, cleanup } = await createAdapterContext({
+    getTurnSteerAvailability: () => ({ kind: "available", threadId: "thread-1", turnId: "turn-1" }),
+    steerTurnInput: async () => "follow_up"
+  });
+  try {
+    const session = authorizeChatWithSession(store, "1");
+    store.updateSessionStatus(session.sessionId, "running", { lastTurnId: "turn-1", lastTurnStatus: "inProgress" });
+    await adapter.submitOrQueueRichInput("1", store.getSessionById(session.sessionId)!, [{ type: "localImage", path: "/tmp/test.png" }], "extra context", "photo");
+    assert.equal(startStructuredTurns.length, 1);
+    assert.deepEqual(startStructuredTurns[0]!.input, [{ type: "localImage", path: "/tmp/test.png" }, { type: "text", text: "extra context" }]);
+    assert.ok(sentMessages.some((m) => m.text === "The previous task finished; starting your message as a follow-up."));
   } finally {
     await cleanup();
   }
@@ -693,7 +738,7 @@ test("RichInputAdapter keeps auto-attach pending when a running turn cannot acce
   };
   const steerCalls: unknown[] = [];
   const { adapter, store, startStructuredTurns, pendingInteractionNotices, continuationReanchorCalls, cleanup } = await createAdapterContext({
-    getBlockedTurnSteerAvailability: () => availability,
+    getTurnSteerAvailability: () => availability,
     appServer: {
       steerTurn: async (payload: unknown) => {
         steerCalls.push(payload);
@@ -762,7 +807,7 @@ test("RichInputAdapter keeps file auto-attach pending when same-message prompt i
   };
   const steerCalls: unknown[] = [];
   const { adapter, store, startStructuredTurns, pendingInteractionNotices, continuationReanchorCalls, cleanup } = await createAdapterContext({
-    getBlockedTurnSteerAvailability: () => availability,
+    getTurnSteerAvailability: () => availability,
     appServer: {
       steerTurn: async (payload: unknown) => {
         steerCalls.push(payload);

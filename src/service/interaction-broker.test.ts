@@ -157,7 +157,7 @@ test("buildPendingInteractionSummaries keeps only actionable rows for the active
   }
 });
 
-test("getBlockedTurnSteerAvailability reports interaction_pending before steer availability", async () => {
+test("getTurnSteerAvailability reports interaction_pending before steer availability", async () => {
   const { broker, store, cleanup } = await createBrokerContext();
   try {
     const session = store.createSession({
@@ -250,9 +250,31 @@ test("getBlockedTurnSteerAvailability reports interaction_pending before steer a
 
     const currentSession = store.getSessionById(session.sessionId)!;
     assert.deepEqual(
-      broker.getBlockedTurnSteerAvailability("chat-1", currentSession, activeTurn),
+      broker.getTurnSteerAvailability("chat-1", currentSession, activeTurn),
       { kind: "interaction_pending" }
     );
+  } finally {
+    await cleanup();
+  }
+});
+
+test("steering accepts starting and running turns only in their owning chat and session", async () => {
+  const { broker, store, cleanup } = await createBrokerContext();
+  try {
+    const session = store.createSession({ chatId: "chat-1", projectName: "One", projectPath: "/tmp/one" });
+    store.updateSessionStatus(session.sessionId, "running", { lastTurnId: "turn-1", lastTurnStatus: "inProgress" });
+    const current = store.getSessionById(session.sessionId)!;
+    for (const turnStatus of ["starting", "running", "blocked"] as const) {
+      const active = {
+        chatId: "chat-1", sessionId: session.sessionId, threadId: "thread-1", turnId: "turn-1",
+        tracker: { getInspectSnapshot: () => ({} as InspectSnapshot), getStatus: () => ({ turnStatus } as ActivityStatus) },
+        statusCard: { needsReanchorOnActive: false }
+      };
+      assert.deepEqual(broker.getTurnSteerAvailability("chat-1", current, active), { kind: "available", activeTurn: active });
+      assert.deepEqual(broker.getTurnSteerAvailability("chat-2", current, active), { kind: "busy" });
+      assert.deepEqual(broker.getTurnSteerAvailability("chat-1", current, { ...active, sessionId: "other-session" }), { kind: "busy" });
+    }
+    assert.deepEqual(broker.getTurnSteerAvailability("chat-1", current, null), { kind: "busy" });
   } finally {
     await cleanup();
   }

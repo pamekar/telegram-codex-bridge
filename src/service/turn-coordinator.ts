@@ -4,6 +4,7 @@ import { ActivityTracker, type SubagentIdentityEvent } from "../activity/tracker
 import type { ActivityStatus } from "../activity/types.js";
 import { getDebugRuntimeDir, type BridgePaths } from "../paths.js";
 import type { JsonRpcRequestId, JsonRpcServerRequest, UserInput, CodexAppServerClient } from "../codex/app-server.js";
+import { AppServerRpcError } from "../codex/app-server.js";
 import { classifyNotification } from "../codex/notification-classifier.js";
 import {
   isCommentaryAgentMessagePhase,
@@ -38,7 +39,7 @@ import {
 } from "../telegram/ui-final-answer.js";
 import { executeTelegramHtmlSurfaceOperation } from "../telegram/surface-adapter.js";
 import type {
-  BlockedTurnSteerAvailability,
+  TurnSteerAvailability,
   InteractionBrokerActiveTurn,
   PendingInteractionTerminalState,
   InteractionResolutionSource
@@ -155,11 +156,11 @@ interface TurnCoordinatorDeps {
   }>;
   fetchAllModels: () => Promise<NonNullable<Awaited<ReturnType<CodexAppServerClient["listModels"]>>["data"]>>;
   interactionBroker: {
-    getBlockedTurnSteerAvailability: (
+    getTurnSteerAvailability: (
       chatId: string,
       session: SessionRow,
       activeTurn: InteractionBrokerActiveTurn | null
-    ) => BlockedTurnSteerAvailability;
+    ) => TurnSteerAvailability;
     handleNormalizedServerRequest: (
       request: JsonRpcServerRequest,
       normalized: NonNullable<ReturnType<typeof normalizeServerRequest>>,
@@ -319,12 +320,55 @@ export class TurnCoordinator {
     };
   }
 
-  getBlockedTurnSteerAvailability(chatId: string, session: SessionRow): BlockedTurnSteerAvailability {
-    return this.deps.interactionBroker.getBlockedTurnSteerAvailability(
+  getTurnSteerAvailability(chatId: string, session: SessionRow): TurnSteerAvailability {
+    return this.deps.interactionBroker.getTurnSteerAvailability(
       chatId,
       session,
       this.getActiveTurnBySessionId(session.sessionId)
     );
+  }
+
+  async steerTurnInput(
+    chatId: string,
+    session: SessionRow,
+    threadId: string,
+    turnId: string,
+    input: UserInput[]
+  ): Promise<"steered" | "follow_up"> {
+    await this.deps.ensureAppServerAvailable();
+    const appServer = this.deps.getAppServer();
+    if (!appServer) {
+      throw new Error("app-server is unavailable");
+    }
+
+    try {
+      await appServer.steerTurn({ threadId, expectedTurnId: turnId, input });
+      return "steered";
+    } catch (error) {
+      // Only a definite server rejection is safe to resubmit. A timeout or
+      // disconnected transport may have already delivered the user's input.
+      if (!(error instanceof AppServerRpcError)
+        || error.code !== -32600
+        || error.message !== "no active turn to steer") {
+        throw error;
+      }
+
+      // turn/completed may be arriving concurrently. Let its reducer update
+      // session state before starting a follow-up, preserving the old result.
+      for (let attempt = 0; attempt < 100; attempt++) {
+        const current = this.deps.getStore()?.getSessionById(session.sessionId);
+        const active = this.getActiveTurnBySessionId(session.sessionId);
+        if (!current || current.chatId !== chatId || current.archived
+          || current.threadId !== threadId || (active && active.turnId !== turnId)) {
+          throw error;
+        }
+        if (current.status !== "running" && !active) {
+          return "follow_up";
+        }
+        await new Promise<void>((resolve) => setTimeout(resolve, 20));
+      }
+      throw error;
+    }
   }
 
   async handleInterrupt(chatId: string): Promise<void> {

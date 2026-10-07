@@ -93,7 +93,7 @@ Used today:
 Current bridge meaning:
 
 - normal chat text and queued structured inputs become `turn/start`
-- blocked-turn continuation uses `turn/steer`
+- additional input during running or blocked turns uses `turn/steer`, with the active turn ID precondition and an acceptance acknowledgment
 - interrupt is session-scoped Telegram control, not a raw transport diagnostic
 
 Primary owners:

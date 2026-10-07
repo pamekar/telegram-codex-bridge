@@ -64,7 +64,7 @@ export interface InteractionBrokerActiveTurn {
   };
 }
 
-export type BlockedTurnSteerAvailability =
+export type TurnSteerAvailability =
   | { kind: "available"; activeTurn: InteractionBrokerActiveTurn }
   | { kind: "interaction_pending" }
   | { kind: "busy" };
@@ -154,20 +154,16 @@ export class InteractionBroker {
       .filter((value): value is string => Boolean(value));
   }
 
-  getBlockedTurnSteerAvailability(
+  getTurnSteerAvailability(
     chatId: string,
     session: SessionRow,
     activeTurn: InteractionBrokerActiveTurn | null
-  ): BlockedTurnSteerAvailability {
+  ): TurnSteerAvailability {
     if (session.status !== "running") {
       return { kind: "busy" };
     }
 
-    if (!activeTurn || activeTurn.sessionId !== session.sessionId) {
-      return { kind: "busy" };
-    }
-
-    if (activeTurn.tracker.getStatus().turnStatus !== "blocked") {
+    if (!activeTurn || activeTurn.sessionId !== session.sessionId || activeTurn.chatId !== chatId || session.chatId !== chatId) {
       return { kind: "busy" };
     }
 

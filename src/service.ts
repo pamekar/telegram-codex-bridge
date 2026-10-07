@@ -459,8 +459,8 @@ export class BridgeService {
       fetchRuntimeConfig: async (cwd) => this.fetchRuntimeConfig(cwd),
       fetchAllModels: async () => this.fetchAllModels(),
       interactionBroker: {
-        getBlockedTurnSteerAvailability: (chatId, session, activeTurn) =>
-          this.interactionBroker.getBlockedTurnSteerAvailability(chatId, session, activeTurn),
+        getTurnSteerAvailability: (chatId, session, activeTurn) =>
+          this.interactionBroker.getTurnSteerAvailability(chatId, session, activeTurn),
         handleNormalizedServerRequest: async (request, normalized, activeTurn) =>
           this.interactionBroker.handleNormalizedServerRequest(request, normalized, activeTurn),
         handleServerRequestResolvedNotification: async (threadId, requestId) =>
@@ -566,8 +566,8 @@ export class BridgeService {
       getUiLanguage: () => this.getUiLanguage(),
       isStopping: () => this.stopping,
       sleep: async (delayMs) => this.sleep(delayMs),
-      getBlockedTurnSteerAvailability: (chatId, session) => {
-        const availability = this.turnCoordinator.getBlockedTurnSteerAvailability(chatId, session);
+      getTurnSteerAvailability: (chatId, session) => {
+        const availability = this.turnCoordinator.getTurnSteerAvailability(chatId, session);
         if (availability.kind !== "available") {
           return availability;
         }
@@ -579,8 +579,12 @@ export class BridgeService {
         };
       },
       sendPendingInteractionBlockNotice: async (chatId) => this.interactionBroker.sendPendingInteractionBlockNotice(chatId),
-      reanchorAcceptedTurnContinuation: async (chatId, sessionId) =>
-        this.reanchorRuntimeAfterBridgeReply(chatId, "accepted_turn_continue", sessionId),
+      steerTurnInput: async (chatId, session, threadId, turnId, input) =>
+        this.turnCoordinator.steerTurnInput(chatId, session, threadId, turnId, input),
+      reanchorAcceptedTurnContinuation: async (chatId, sessionId) => {
+        await this.safeSendMessage(chatId, "Added your message to the running task.");
+        await this.reanchorRuntimeAfterBridgeReply(chatId, "accepted_turn_continue", sessionId);
+      },
       startTextTurn: async (chatId, session, text, options) => this.turnCoordinator.startTextTurn(chatId, session, text, options),
       startStructuredTurn: async (chatId, session, input) => this.turnCoordinator.startStructuredTurn(chatId, session, input),
       safeSendMessage: async (chatId, text) => this.safeSendMessage(chatId, text)
@@ -2539,16 +2543,14 @@ export class BridgeService {
     text: string
   ): Promise<WebTextMessageSubmitResult> {
     if (session.status === "running") {
-      const steerAvailability = this.turnCoordinator.getBlockedTurnSteerAvailability(chatId, session);
+      const steerAvailability = this.turnCoordinator.getTurnSteerAvailability(chatId, session);
       if (text && steerAvailability.kind === "available") {
+        let result: "steered" | "follow_up";
         try {
-          await this.ensureAppServerAvailable();
-          await this.appServer?.steerTurn({
-            threadId: steerAvailability.activeTurn.threadId,
-            expectedTurnId: steerAvailability.activeTurn.turnId,
-            input: [{ type: "text", text }]
-          });
-          await this.reanchorRuntimeAfterBridgeReply(chatId, "accepted_turn_continue", session.sessionId);
+          result = await this.turnCoordinator.steerTurnInput(
+            chatId, session, steerAvailability.activeTurn.threadId,
+            steerAvailability.activeTurn.turnId, [{ type: "text", text }]
+          );
         } catch (error) {
           await this.logger.warn("turn steer failed", {
             chatId,
@@ -2557,8 +2559,15 @@ export class BridgeService {
             turnId: steerAvailability.activeTurn.turnId,
             error: `${error}`
           });
-          await this.safeSendMessage(chatId, "Codex service temporarily unavailable. Please retry later.");
+          await this.safeSendMessage(chatId, "Could not confirm that Codex accepted your message. Check /status before retrying.");
           return { status: "unavailable" };
+        }
+        if (result === "follow_up") {
+          await this.safeSendMessage(chatId, "The previous task finished; starting your message as a follow-up.");
+          await this.startRealTurn(chatId, this.store!.getSessionById(session.sessionId)!, text);
+        } else {
+          await this.safeSendMessage(chatId, "Added your message to the running task.");
+          await this.reanchorRuntimeAfterBridgeReply(chatId, "accepted_turn_continue", session.sessionId);
         }
         return { status: "accepted" };
       }

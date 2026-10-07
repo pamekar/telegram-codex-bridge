@@ -180,7 +180,7 @@ async function createCoordinatorContext(options: {
       supportedReasoningEfforts: [{ reasoningEffort: "medium", description: "Default" }]
     }],
     interactionBroker: {
-      getBlockedTurnSteerAvailability: (_chatId, _session, activeTurn) =>
+      getTurnSteerAvailability: (_chatId, _session, activeTurn) =>
         activeTurn ? { kind: "available", activeTurn } : { kind: "busy" },
       handleNormalizedServerRequest: async () => {},
       handleServerRequestResolvedNotification: async () => {},

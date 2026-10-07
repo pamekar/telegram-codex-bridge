@@ -303,12 +303,14 @@ test("respondToServerRequest writes a JSON-RPC result frame", async () => {
   ]);
 });
 
-test("steerTurn sends expectedTurnId and structured input", async () => {
+test("steerTurn sends expectedTurnId and structured input without terminating on timeout", async () => {
   const client = new CodexAppServerClient("codex", "/tmp/app-server.log", testLogger);
   let captured: { method: string; params: unknown } | null = null;
+  let requestOptions: unknown;
 
-  (client as any).request = async (method: string, params: unknown) => {
+  (client as any).request = async (method: string, params: unknown, options: unknown) => {
     captured = { method, params };
+    requestOptions = options;
     return {};
   };
 
@@ -325,6 +327,20 @@ test("steerTurn sends expectedTurnId and structured input", async () => {
       expectedTurnId: "turn-1",
       input: [{ type: "text", text: "continue" }]
     }
+  });
+  assert.deepEqual(requestOptions, { terminateOnTimeout: false });
+});
+
+test("app-server preserves RPC rejection codes for safe steering fallback", async () => {
+  const client = new CodexAppServerClient("codex", "/tmp/app-server.log", testLogger);
+  (client as any).child = {
+    stdin: { write: (line: string, _encoding: string, callback: (error: null) => void) => {
+      callback(null);
+      (client as any).handleMessage(JSON.stringify({ id: JSON.parse(line).id, error: { code: -32600, message: "no active turn to steer" } }));
+    } }
+  };
+  await assert.rejects(client.steerTurn({ threadId: "thread-1", expectedTurnId: "turn-1", input: [{ type: "text", text: "context" }] }), {
+    name: "AppServerRpcError", code: -32600, message: "no active turn to steer"
   });
 });
 

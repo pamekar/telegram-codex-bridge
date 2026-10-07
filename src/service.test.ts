@@ -10,7 +10,7 @@ import type { BridgePaths } from "./paths.js";
 import type { ActivityStatus } from "./activity/types.js";
 import { ActivityTracker } from "./activity/tracker.js";
 import type { ThreadReadResult } from "./codex/app-server.js";
-import { CodexAppServerClient } from "./codex/app-server.js";
+import { AppServerRpcError, CodexAppServerClient } from "./codex/app-server.js";
 import { classifyNotification } from "./codex/notification-classifier.js";
 import { FEISHU_BOT_MENU_EVENT_KEYS } from "./feishu/ui.js";
 import { FEISHU_PACK } from "./packs/feishu/index.js";
@@ -6530,52 +6530,21 @@ test("bridge commands while blocked do not reanchor runtime ahead of the pending
   }
 });
 
-test("busy-turn rejection teaches /hub once and stops after the user uses the command", async () => {
+test("untracked running sessions retain busy-turn guidance", async () => {
   const { service, store, cleanup } = await createServiceContext();
-  const sent: Array<{ messageId: number; text: string; parseMode?: string }> = [];
-  const deleted: number[] = [];
-
+  const sent: string[] = [];
   try {
     const session = authorizeNumericChatWithSession(store, "1");
     store.setActiveSession("1", session.sessionId);
-
+    store.updateSessionStatus(session.sessionId, "running", { lastTurnId: "untracked", lastTurnStatus: "inProgress" });
     (service as any).api = {
-      sendMessage: async (_chatId: string, text: string, options?: any) => {
-        const messageId = 1200 + sent.length;
-        sent.push({ messageId, text, parseMode: options?.parseMode });
-        return createFakeTelegramMessage(messageId, text);
-      },
-      editMessageText: async (_chatId: string, messageId: number, text: string) =>
-        createFakeTelegramMessage(messageId, text),
-      deleteMessage: async (_chatId: string, messageId: number) => {
-        deleted.push(messageId);
-        return true;
+      sendMessage: async (_chatId: string, text: string) => {
+        sent.push(text);
+        return createFakeTelegramMessage(1200 + sent.length, text);
       }
     };
-
-    installRunningAppServer(service, "thread-hub-reminder", "turn-hub-reminder");
-    await (service as any).startRealTurn("1", session, "Do the work");
-    await (service as any).handleAppServerNotification("turn/started", {
-      threadId: "thread-hub-reminder",
-      turnId: "turn-hub-reminder"
-    });
-
-    await (service as any).handleMessage(
-      createIncomingUserMessage(1, 1, 10, "Can you also do one more thing?")
-    );
-    assert.match(
-      sent.at(-1)?.text ?? "",
-      /当前项目仍在执行，请等待完成或发送 \/interrupt。需要查看运行卡片时，可发送 \/hub。/u
-    );
-
-    await (service as any).routeCommand("1", "hub", "");
-    assert.equal(isRuntimeStatusText(sent.at(-1)?.text ?? ""), true);
-    assert.ok(deleted.length > 0);
-
-    await (service as any).handleMessage(
-      createIncomingUserMessage(1, 1, 11, "One more follow-up")
-    );
-    assert.equal(sent.at(-1)?.text, "当前项目仍在执行，请等待完成或发送 /interrupt。");
+    await (service as any).handleMessage(createIncomingUserMessage(1, 1, 10, "Can you also do one more thing?"));
+    assert.match(sent.at(-1) ?? "", /A task is still running.*\/interrupt/u);
   } finally {
     await cleanup();
   }
@@ -7758,9 +7727,12 @@ test("MCP form interactions cancel with action cancel", async () => {
   }
 });
 
-test("blocked running turns route plain text into turn steer when no interaction is awaiting text", async () => {
+for (const blocked of [false, true]) {
+test(`${blocked ? "blocked" : "ordinary"} running turns accept repeated plain text steering`, async () => {
   const { service, store, cleanup } = await createServiceContext();
   const steerCalls: unknown[] = [];
+  const sent: string[] = [];
+  let starts = 0;
   const reanchorCalls: Array<{ reason: string; sessionId: string | null }> = [];
 
   try {
@@ -7768,7 +7740,10 @@ test("blocked running turns route plain text into turn steer when no interaction
     store.setActiveSession("1", session.sessionId);
 
     (service as any).api = {
-      sendMessage: async (_chatId: string, text: string, _options?: any) => createFakeTelegramMessage(1100 + text.length, text),
+      sendMessage: async (_chatId: string, text: string, _options?: any) => {
+        sent.push(text);
+        return createFakeTelegramMessage(1100 + text.length, text);
+      },
       editMessageText: async (_chatId: string, messageId: number, text: string, _options?: any) =>
         createFakeTelegramMessage(messageId, text),
       answerCallbackQuery: async () => {}
@@ -7777,7 +7752,10 @@ test("blocked running turns route plain text into turn steer when no interaction
     (service as any).appServer = {
       isRunning: true,
       startThread: async () => ({ thread: { id: "thread-3" } }),
-      startTurn: async () => ({ turn: { id: "turn-3", status: "inProgress" } }),
+      startTurn: async () => {
+        starts++;
+        return { turn: { id: "turn-3", status: "inProgress" } };
+      },
       resumeThread: async () => ({ thread: { id: "thread-3", turns: [] } }),
       steerTurn: async (payload: unknown) => {
         steerCalls.push(payload);
@@ -7800,17 +7778,29 @@ test("blocked running turns route plain text into turn steer when no interaction
       threadId: "thread-3",
       turnId: "turn-3",
       status: "active",
-      activeFlags: ["waitingOnUserInput"]
+      activeFlags: blocked ? ["waitingOnUserInput"] : []
     });
 
     await (service as any).handleMessage(createIncomingUserMessage(1, 1, 1001, "continue with staging"));
 
+    await (service as any).handleMessage(createIncomingUserMessage(1, 1, 1002, "also check reconnect"));
+
+    assert.equal(starts, 1);
+    assert.equal(sent.filter((text) => text === "Added your message to the running task.").length, 2);
+    assert.equal((service as any).activeTurn.turnId, "turn-3");
     assert.deepEqual(steerCalls, [{
       threadId: "thread-3",
       expectedTurnId: "turn-3",
       input: [{ type: "text", text: "continue with staging" }]
+    }, {
+      threadId: "thread-3",
+      expectedTurnId: "turn-3",
+      input: [{ type: "text", text: "also check reconnect" }]
     }]);
     assert.deepEqual(reanchorCalls, [{
+      reason: "accepted_turn_continue",
+      sessionId: session.sessionId
+    }, {
       reason: "accepted_turn_continue",
       sessionId: session.sessionId
     }]);
@@ -7818,6 +7808,61 @@ test("blocked running turns route plain text into turn steer when no interaction
     await cleanup();
   }
 });
+}
+
+for (const failure of ["finished", "timeout"]) {
+test(`steering ${failure} handles delivery without duplicate input`, async () => {
+  const { service, store, cleanup } = await createServiceContext();
+  const sent: string[] = [];
+  const starts: unknown[] = [];
+  let steerCalls = 0;
+  try {
+    const session = authorizeNumericChatWithSession(store, "1");
+    store.setActiveSession("1", session.sessionId);
+    (service as any).api = {
+      sendMessage: async (_chatId: string, text: string) => {
+        sent.push(text);
+        return createFakeTelegramMessage(1400 + sent.length, text);
+      },
+      editMessageText: async (_chatId: string, messageId: number, text: string) => createFakeTelegramMessage(messageId, text)
+    };
+    (service as any).appServer = {
+      isRunning: true,
+      startThread: async () => ({ thread: { id: "thread-race" } }),
+      resumeThread: async () => ({ thread: { id: "thread-race", turns: [] } }),
+      readThread: async () => ({ thread: { id: "thread-race", turns: [] } }),
+      startTurn: async (request: unknown) => {
+        starts.push(request);
+        return { turn: { id: `turn-${starts.length}`, status: "inProgress" } };
+      },
+      steerTurn: async () => {
+        steerCalls++;
+        if (failure === "timeout") {
+          throw new Error("app-server request timed out: turn/steer");
+        }
+        await (service as any).handleAppServerNotification("turn/completed", {
+          threadId: "thread-race", turn: { id: "turn-1", status: "completed" }
+        });
+        throw new AppServerRpcError(-32600, "no active turn to steer");
+      }
+    };
+    await (service as any).startRealTurn("1", session, "Original task");
+    await (service as any).handleMessage(createIncomingUserMessage(1, 1, 1005, "extra context"));
+    assert.equal(steerCalls, 1);
+    assert.equal(starts.length, failure === "finished" ? 2 : 1);
+    if (failure === "finished") {
+      assert.equal((starts[1] as { text: string }).text, "extra context");
+      assert.equal((service as any).activeTurn.turnId, "turn-2");
+      assert.ok(sent.includes("The previous task finished; starting your message as a follow-up."));
+    } else {
+      assert.ok(sent.includes("Could not confirm that Codex accepted your message. Check /status before retrying."));
+      assert.ok(!sent.includes("Added your message to the running task."));
+    }
+  } finally {
+    await cleanup();
+  }
+});
+}
 
 test("blocked turns do not steer plain text while an interaction card is pending", async () => {
   const { service, store, cleanup } = await createServiceContext();
@@ -7872,7 +7917,7 @@ test("blocked turns do not steer plain text while an interaction card is pending
     await (service as any).handleMessage(createIncomingUserMessage(1, 1, 1004, "continue anyway"));
 
     assert.equal(steerCalls.length, 0);
-    assert.match(sent.at(-1) ?? "", /当前正在等待你处理交互卡片/u);
+    assert.match(sent.at(-1) ?? "", /Waiting for you to handle the interaction card/u);
   } finally {
     await cleanup();
   }
@@ -7936,7 +7981,7 @@ test("blocked turns do not queue rich input prompts while an interaction card is
     );
 
     assert.equal((service as any).richInputAdapter.pendingRichInputComposers.size, 0);
-    assert.match(sent.at(-1) ?? "", /当前正在等待你处理交互卡片/u);
+    assert.match(sent.at(-1) ?? "", /Waiting for you to handle the interaction card/u);
   } finally {
     await cleanup();
   }
